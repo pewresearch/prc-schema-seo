@@ -7,9 +7,20 @@ import { PluginPostStatusInfo } from '@wordpress/editor';
 import { registerPlugin } from '@wordpress/plugins';
 
 /**
+ * External Dependencies
+ */
+import styled from '@emotion/styled';
+
+/**
  * Internal Dependencies
  */
 import { calculate } from './flesch-kincaid';
+
+const StyledPostStatusInfo = styled(PluginPostStatusInfo)`
+	order: -1;
+	margin-top: 0;
+	margin-bottom: 1em;
+`;
 
 const DEBOUNCE_MS = 500;
 
@@ -95,12 +106,13 @@ function ReadingScoreInfo() {
 	}
 
 	return (
-		<PluginPostStatusInfo className="prc-reading-score">
+		<StyledPostStatusInfo className="prc-reading-score">
 			<span
 				style={{
 					display: 'flex',
 					alignItems: 'center',
 					width: '100%',
+					flexWrap: 'wrap',
 					justifyContent: 'space-between',
 				}}
 			>
@@ -117,7 +129,7 @@ function ReadingScoreInfo() {
 					Ease {score.readingEase}
 				</span>
 			</span>
-		</PluginPostStatusInfo>
+		</StyledPostStatusInfo>
 	);
 }
 
