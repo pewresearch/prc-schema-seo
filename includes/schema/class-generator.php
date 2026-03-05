@@ -924,7 +924,9 @@ class Generator {
 		if ( ! empty( $seo_data['og_image'] ) ) {
 			$image_url = wp_get_attachment_image_url( $seo_data['og_image'], 'full' );
 			if ( $image_url ) {
-				$webpage->image( $image_url );
+				$webpage->primaryImageOfPage(
+					Schema::imageObject()->url( $image_url )
+				);
 			}
 		}
 
@@ -973,7 +975,9 @@ class Generator {
 		if ( ! empty( $seo_data['og_image'] ) ) {
 			$image_url = wp_get_attachment_image_url( $seo_data['og_image'], 'full' );
 			if ( $image_url ) {
-				$webpage->image( $image_url );
+				$webpage->primaryImageOfPage(
+					Schema::imageObject()->url( $image_url )
+				);
 			}
 		}
 
