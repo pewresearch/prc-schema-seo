@@ -772,7 +772,7 @@ class Template_Defaults {
 			if ( $term && isset( $term->description ) && ! empty( $term->description ) ) {
 				return $term->description;
 			}
-			return '';
+			return get_bloginfo( 'description' );
 		}
 
 		// Post type archive - return post type description.
@@ -780,13 +780,13 @@ class Template_Defaults {
 			$post_type     = get_query_var( 'post_type' );
 			$post_type     = is_array( $post_type ) ? reset( $post_type ) : $post_type;
 			$post_type_obj = get_post_type_object( $post_type );
-			if ( $post_type_obj && isset( $post_type_obj->description ) ) {
+			if ( $post_type_obj && isset( $post_type_obj->description ) && ! empty( $post_type_obj->description ) ) {
 				return $post_type_obj->description;
 			}
-			return '';
+			return get_bloginfo( 'description' );
 		}
 
-		return '';
+		return get_bloginfo( 'description' );
 	}
 
 

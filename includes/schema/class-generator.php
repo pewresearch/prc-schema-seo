@@ -194,6 +194,7 @@ class Generator {
 		$website = Schema::webSite()
 			->setProperty( '@id', home_url( '/#website' ) )
 			->name( 'Pew Research Center' )
+			->description( get_bloginfo( 'description' ) )
 			->url( home_url() )
 			->publisher( array( '@id' => home_url( '/#organization' ) ) )
 			->sameAs( $this->get_same_as_array() )
@@ -262,7 +263,10 @@ class Generator {
 		// Default CollectionPage for other taxonomies.
 		$name        = $term->name;
 		$description = wp_strip_all_tags( term_description( $term_id ) );
-		$url         = get_term_link( $term );
+		if ( empty( $description ) ) {
+			$description = get_bloginfo( 'description' );
+		}
+		$url = get_term_link( $term );
 
 		$collection = Schema::collectionPage()
 			->name( $name )
@@ -315,7 +319,7 @@ class Generator {
 		}
 
 		$name        = $post_type_object->labels->name;
-		$description = ! empty( $post_type_object->description ) ? wp_strip_all_tags( $post_type_object->description ) : '';
+		$description = ! empty( $post_type_object->description ) ? wp_strip_all_tags( $post_type_object->description ) : get_bloginfo( 'description' );
 		$url         = get_post_type_archive_link( $post_type );
 
 		if ( ! $url ) {

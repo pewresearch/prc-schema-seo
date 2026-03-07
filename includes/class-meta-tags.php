@@ -333,12 +333,10 @@ class Meta_Tags {
 			$template_defaults = new Template_Defaults( $this->loader );
 			$defaults          = $template_defaults->get_template_defaults( $context );
 			if ( ! empty( $defaults['title_pattern'] ) ) {
-				$resolved = str_replace(
-					array( '%sep%', '%site_name%', '%site_tagline%' ),
-					array( $separator, get_bloginfo( 'name' ), get_bloginfo( 'description' ) ),
-					$defaults['title_pattern']
-				);
-				return $resolved;
+				$resolved = $this->resolve_archive_title_pattern( $defaults['title_pattern'] );
+				if ( ! empty( $resolved ) ) {
+					return $resolved;
+				}
 			}
 			return $title;
 		}
@@ -420,6 +418,11 @@ class Meta_Tags {
 			$tokens['%object_title%'] = $term->name;
 		}
 
+		// Add blog/home page tokens.
+		if ( is_home() ) {
+			$tokens['%object_title%'] = 'Publications';
+		}
+
 		// Add post type archive tokens.
 		if ( is_post_type_archive() ) {
 			do_action( 'qm/debug', 'is_post_type_archive()' );
@@ -480,7 +483,7 @@ class Meta_Tags {
 
 		$og_image_url = apply_filters( 'prc_schema_seo_og_image_url', $og_image_url, $post_id, $data );
 
-		$twitter_site    = apply_filters( 'prc_schema_seo_twitter_site', '@pewresearch' );
+		$twitter_site     = apply_filters( 'prc_schema_seo_twitter_site', '@pewresearch' );
 		$primary_category = '';
 		$is_article       = strtolower( $data['schema_type'] ) === 'article';
 		do_action( 'qm/debug', 'Is article: ' . print_r( $is_article, true ) );
@@ -770,7 +773,7 @@ class Meta_Tags {
 		if ( $post_type_obj ) {
 			$tokens['%post_type%']          = $post_type_obj->name;
 			$tokens['%object_title%']       = $post_type_obj->labels->name;
-			$tokens['%object_description%'] = ! empty( $post_type_obj->description ) ? wp_strip_all_tags( $post_type_obj->description ) : '';
+			$tokens['%object_description%'] = ! empty( $post_type_obj->description ) ? wp_strip_all_tags( $post_type_obj->description ) : get_bloginfo( 'description' );
 		}
 
 		return strtr( $pattern, $tokens );
