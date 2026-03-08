@@ -305,8 +305,22 @@ class Generator {
 	public function generate_post_type_archive_schema( $post_type ) {
 		$cache_key = 'post_type_archive_schema_' . $post_type;
 
-		// Check cache only if caching is enabled.
-		if ( ! defined( 'PRC_SCHEMA_SEO_DISABLE_CACHE' ) || ! PRC_SCHEMA_SEO_DISABLE_CACHE ) {
+		/**
+		 * Filter whether to cache the post type archive schema for a given post type.
+		 *
+		 * Evaluated before both the cache read and cache write so that dynamic post
+		 * types (e.g. RLS, whose schema varies per URL) are never served a stale
+		 * cached entry from a previous request.
+		 *
+		 * Return false to skip caching entirely for the given post type.
+		 *
+		 * @param bool   $should_cache Whether to cache the schema output. Default true.
+		 * @param string $post_type    Post type slug.
+		 */
+		$should_cache = apply_filters( 'prc_schema_seo_cache_post_type_archive_schema', true, $post_type );
+
+		// Check cache only if caching is enabled and allowed for this post type.
+		if ( $should_cache && ( ! defined( 'PRC_SCHEMA_SEO_DISABLE_CACHE' ) || ! PRC_SCHEMA_SEO_DISABLE_CACHE ) ) {
 			$cached = wp_cache_get( $cache_key, self::CACHE_GROUP );
 			if ( false !== $cached ) {
 				return $cached;
@@ -363,8 +377,10 @@ class Generator {
 
 		$json_ld = $this->schemas_to_json_ld( $schemas );
 
-		// Cache result only if caching is enabled.
-		if ( ! defined( 'PRC_SCHEMA_SEO_DISABLE_CACHE' ) || ! PRC_SCHEMA_SEO_DISABLE_CACHE ) {
+		// Cache result only if caching is enabled and allowed for this post type.
+		// $should_cache was already resolved above (before the cache read) to keep
+		// both the read and write gates in sync.
+		if ( $should_cache && ( ! defined( 'PRC_SCHEMA_SEO_DISABLE_CACHE' ) || ! PRC_SCHEMA_SEO_DISABLE_CACHE ) ) {
 			wp_cache_set( $cache_key, $json_ld, self::CACHE_GROUP, self::CACHE_TTL );
 		}
 
