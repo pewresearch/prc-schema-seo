@@ -328,7 +328,8 @@ flowchart TB
 
         subgraph G3["prc_schema_seo_output"]
             MT["meta_tags_{post_id}"]
-            MTT["meta_tags_term_{term_id}"]
+            MTT["meta_tags_term_{term_id}_v{version}_page_{paged}"]
+            MH["meta_tags_home_page_{paged}"]
         end
     end
 

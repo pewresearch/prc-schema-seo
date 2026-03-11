@@ -21,7 +21,7 @@ class Contact_Resolver {
 	/**
 	 * Cache group for contact resolution.
 	 */
-	const CACHE_GROUP = 'prc_contact_resolver';
+	const CACHE_GROUP = 'prc_contact_resolver_03112026';
 
 	/**
 	 * Cache TTL (1 hour).

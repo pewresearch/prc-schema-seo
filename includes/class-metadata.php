@@ -19,7 +19,7 @@ class Metadata {
 	/**
 	 * Cache group for SEO data.
 	 */
-	const CACHE_GROUP = 'prc_schema_seo_data_v1.4.3';
+	const CACHE_GROUP = 'prc_schema_seo_data_03112026';
 
 	/**
 	 * Cache TTL (1 hour).
@@ -194,6 +194,22 @@ class Metadata {
 		// This is commonly used for child posts that display numbers on-page but shouldn't in SEO.
 		$seo_data['title'] = preg_replace( '/^\d+\.\s+/', '', $seo_data['title'] );
 
+		// Resolve post-level tokens (%post_title%, %primary_category%, etc.) before template wrapping.
+		// use_raw_post_title prevents circular reference when stored title contains %post_title%.
+		$context = Template_Context::get_current_context();
+		if ( Token_Resolver::has_tokens( $seo_data['title'] ) ) {
+			$seo_data['title'] = Token_Resolver::resolve( $seo_data['title'], $post_id, $context, array(), true );
+		}
+		if ( Token_Resolver::has_tokens( $seo_data['description'] ) ) {
+			$seo_data['description'] = Token_Resolver::resolve( $seo_data['description'], $post_id, $context, array(), true );
+		}
+		if ( ! empty( $seo_data['og_title'] ) && Token_Resolver::has_tokens( $seo_data['og_title'] ) ) {
+			$seo_data['og_title'] = Token_Resolver::resolve( $seo_data['og_title'], $post_id, $context, array(), true );
+		}
+		if ( ! empty( $seo_data['og_description'] ) && Token_Resolver::has_tokens( $seo_data['og_description'] ) ) {
+			$seo_data['og_description'] = Token_Resolver::resolve( $seo_data['og_description'], $post_id, $context, array(), true );
+		}
+
 		// Apply template pattern for title.
 		$seo_data['title'] = apply_filters( 'prc_schema_seo_title', $seo_data['title'], $post_id );
 
@@ -223,7 +239,26 @@ class Metadata {
 			$seo_data['og_description'] = $seo_data['description'];
 		}
 
+		// Decode HTML entities so downstream consumers (meta tag attributes, JSON-LD)
+		// receive plain text rather than HTML-encoded strings.
+		$text_fields = array( 'title', 'description', 'og_title', 'og_description' );
+		foreach ( $text_fields as $field ) {
+			if ( ! empty( $seo_data[ $field ] ) ) {
+				$seo_data[ $field ] = $this->decode_html_entities( $seo_data[ $field ] );
+			}
+		}
+
 		return $seo_data;
+	}
+
+	/**
+	 * Decode HTML entities to plain text for downstream output (meta tags, JSON-LD).
+	 *
+	 * @param string $text Text potentially containing HTML entities.
+	 * @return string Plain text with entities decoded.
+	 */
+	private function decode_html_entities( string $text ): string {
+		return html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 	}
 
 	/**

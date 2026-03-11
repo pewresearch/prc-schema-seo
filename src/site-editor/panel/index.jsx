@@ -116,6 +116,9 @@ function getAvailableTokens(context) {
 			'%object_type%',
 			'%post_type%',
 			'%archive_title%',
+			'%page%',
+			'%page_number%',
+			'%page_total%',
 		];
 	}
 
@@ -135,7 +138,11 @@ function getAvailableTokens(context) {
 	}
 
 	if (context.type === 'blog') {
-		return [...baseTokens, '%page_number%'];
+		return [...baseTokens, '%page%', '%page_number%', '%page_total%'];
+	}
+
+	if (context.type === 'search') {
+		return [...baseTokens, '%search_query%', '%object_title%'];
 	}
 
 	return baseTokens;

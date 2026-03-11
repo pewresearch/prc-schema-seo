@@ -357,7 +357,9 @@ This document describes the data flow and rendering pipeline for the `prc-schema
   │                                                                                  │
   │  Cache Group: prc_schema_seo_output                                              │
   │  ├── meta_tags_{post_id}    → Meta_Tags::output_meta_tags() HTML                 │
-  │  └── meta_tags_term_{id}    → Meta_Tags::output_term_meta_tags() HTML            │
+  │  ├── meta_tags_term_{id}_v{ver}_page_{n} → Meta_Tags::output_term_meta_tags()    │
+  │  ├── meta_tags_term_version_{id}          → version counter for invalidation    │
+  │  └── meta_tags_home_page_{n}              → Meta_Tags::output_home_meta_tags()   │
   │                                                                                  │
   │  TTL: 3600 seconds (1 hour)                                                      │
   └─────────────────────────────────────────────────────────────────────────────────┘

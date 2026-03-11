@@ -214,6 +214,6 @@ class Cache_Invalidator {
 
 		// Clear schema caches for the term itself.
 		wp_cache_delete( 'term_schema_' . $term_id, Generator::CACHE_GROUP );
-		wp_cache_delete( 'meta_tags_term_' . $term_id, Meta_Tags::CACHE_GROUP );
+		Meta_Tags::clear_term_meta_tags_cache( $term_id );
 	}
 }

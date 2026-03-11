@@ -87,7 +87,7 @@ class CLI_Migration extends WPCOM_VIP_CLI_Command {
 		if ( null !== $this->generator ) {
 			return;
 		}
-		$loader        = new Loader();
+		$loader          = new Loader();
 		$this->generator = new Generator( $loader );
 		$this->meta_tags = new Meta_Tags( $loader );
 		$this->parsely   = new Parsely_Meta( $loader );
@@ -227,12 +227,12 @@ class CLI_Migration extends WPCOM_VIP_CLI_Command {
 	 * @param array $assoc_args Associative arguments.
 	 */
 	public function migrate_posts( $args, $assoc_args ) {
-		$post_type      = Utils\get_flag_value( $assoc_args, 'post-type', 'post' );
-		$batch_size     = min( absint( Utils\get_flag_value( $assoc_args, 'batch-size', 100 ) ), 100 );
-		$dry_run        = $this->parse_dry_run( $assoc_args );
-		$skip_existing  = ! Utils\get_flag_value( $assoc_args, 'no-skip-existing', false );
-		$start_id       = absint( Utils\get_flag_value( $assoc_args, 'start-id', 0 ) );
-		$no_warm_cache  = Utils\get_flag_value( $assoc_args, 'no-warm-cache', false );
+		$post_type     = Utils\get_flag_value( $assoc_args, 'post-type', 'post' );
+		$batch_size    = min( absint( Utils\get_flag_value( $assoc_args, 'batch-size', 100 ) ), 100 );
+		$dry_run       = $this->parse_dry_run( $assoc_args );
+		$skip_existing = ! Utils\get_flag_value( $assoc_args, 'no-skip-existing', false );
+		$start_id      = absint( Utils\get_flag_value( $assoc_args, 'start-id', 0 ) );
+		$no_warm_cache = Utils\get_flag_value( $assoc_args, 'no-warm-cache', false );
 
 		if ( $batch_size < 1 ) {
 			$batch_size = 100;
@@ -255,10 +255,10 @@ class CLI_Migration extends WPCOM_VIP_CLI_Command {
 		}
 
 		$stats = array(
-			'processed'   => 0,
-			'migrated'    => 0,
-			'skipped'     => 0,
-			'failed'      => 0,
+			'processed'    => 0,
+			'migrated'     => 0,
+			'skipped'      => 0,
+			'failed'       => 0,
 			'cache_warmed' => 0,
 		);
 
@@ -505,10 +505,10 @@ class CLI_Migration extends WPCOM_VIP_CLI_Command {
 		WP_CLI::line( sprintf( 'Found %d terms to process.', count( $terms ) ) );
 
 		$stats = array(
-			'processed'   => 0,
-			'migrated'    => 0,
-			'skipped'     => 0,
-			'failed'      => 0,
+			'processed'    => 0,
+			'migrated'     => 0,
+			'skipped'      => 0,
+			'failed'       => 0,
 			'cache_warmed' => 0,
 		);
 
@@ -665,6 +665,223 @@ class CLI_Migration extends WPCOM_VIP_CLI_Command {
 		}
 
 		WP_CLI::line( wp_json_encode( $yoast_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
+	}
+
+	/**
+	 * Clean leftover Yoast %%...%% placeholders from already-migrated PRC SEO data.
+	 *
+	 * Scans _prc_seo_data post meta for title, og_title, and twitter_title fields
+	 * containing Yoast replacement variables (e.g. %%sitename%%, %%title%%) and
+	 * strips them. Optionally processes _prc_seo_term_data as well.
+	 *
+	 * Defaults to dry-run mode. Pass --dry-run=false to write.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--post-type=<type>]
+	 * : Post type to process. Default: all post types.
+	 *
+	 * [--batch-size=<size>]
+	 * : Number of posts to process per batch. Default: 100. Maximum: 100.
+	 *
+	 * [--dry-run=<bool>]
+	 * : Preview changes without saving to database. Default: true.
+	 *
+	 * [--include-terms]
+	 * : Also clean term SEO data (_prc_seo_term_data).
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     # Preview which posts have Yoast placeholders (dry-run)
+	 *     wp prc-seo clean-yoast-placeholders
+	 *
+	 *     # Clean all posts for real
+	 *     wp prc-seo clean-yoast-placeholders --dry-run=false
+	 *
+	 *     # Clean posts and terms
+	 *     wp prc-seo clean-yoast-placeholders --dry-run=false --include-terms
+	 *
+	 * @subcommand clean-yoast-placeholders
+	 * @synopsis [--post-type=<type>] [--batch-size=<size>] [--dry-run=<bool>] [--include-terms]
+	 *
+	 * @param array $args       Positional arguments.
+	 * @param array $assoc_args Associative arguments.
+	 */
+	public function clean_yoast_placeholders( $args, $assoc_args ) {
+		$post_type     = Utils\get_flag_value( $assoc_args, 'post-type', '' );
+		$batch_size    = min( absint( Utils\get_flag_value( $assoc_args, 'batch-size', 100 ) ), 100 );
+		$dry_run       = $this->parse_dry_run( $assoc_args );
+		$include_terms = Utils\get_flag_value( $assoc_args, 'include-terms', false );
+
+		if ( $batch_size < 1 ) {
+			$batch_size = 100;
+		}
+
+		$text_fields = array( 'title', 'og_title', 'twitter_title', 'description', 'og_description', 'twitter_description' );
+
+		WP_CLI::line( sprintf( 'Converting Yoast placeholders to PRC tokens in SEO data%s…', $dry_run ? ' (dry-run)' : '' ) );
+
+		$stats = array(
+			'posts_scanned' => 0,
+			'posts_cleaned' => 0,
+			'terms_scanned' => 0,
+			'terms_cleaned' => 0,
+		);
+
+		$this->start_bulk_operation();
+
+		$paged = 1;
+		do {
+			$query_args = array(
+				'post_status'    => 'any',
+				'posts_per_page' => $batch_size,
+				'paged'          => $paged,
+				'orderby'        => 'ID',
+				'order'          => 'ASC',
+				'no_found_rows'  => true,
+				'meta_query'     => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+					array(
+						'key'     => Yoast_Migrator::PRC_POST_META_KEY,
+						'compare' => 'EXISTS',
+					),
+				),
+			);
+
+			if ( ! empty( $post_type ) ) {
+				$query_args['post_type'] = $post_type;
+			} else {
+				$query_args['post_type'] = 'any';
+			}
+
+			$posts = get_posts( $query_args );
+
+			foreach ( $posts as $post ) {
+				++$stats['posts_scanned'];
+				$data    = get_post_meta( $post->ID, Yoast_Migrator::PRC_POST_META_KEY, true );
+				$changed = false;
+
+				if ( ! is_array( $data ) ) {
+					continue;
+				}
+
+				foreach ( $text_fields as $field ) {
+					if ( empty( $data[ $field ] ) || ! is_string( $data[ $field ] ) ) {
+						continue;
+					}
+					if ( preg_match( '/%%[a-z0-9_]+%%/i', $data[ $field ] ) ) {
+						$original       = $data[ $field ];
+						$converted      = Yoast_Migrator::convert_yoast_tokens( $data[ $field ] );
+						$data[ $field ] = $converted;
+						$changed        = true;
+
+						WP_CLI::line(
+							sprintf(
+								'Post %d [%s]: "%s" → "%s"',
+								$post->ID,
+								$field,
+								$original,
+								$converted
+							)
+						);
+					}
+				}
+
+				if ( $changed ) {
+					++$stats['posts_cleaned'];
+					if ( ! $dry_run ) {
+						update_post_meta( $post->ID, Yoast_Migrator::PRC_POST_META_KEY, $data );
+						wp_cache_delete( 'seo_data_' . $post->ID, Metadata::CACHE_GROUP );
+					}
+				}
+			}
+
+			$posts_count = count( $posts );
+
+			if ( 0 === $paged % 5 ) {
+				sleep( 1 );
+				$this->vip_inmemory_cleanup();
+			}
+			++$paged;
+
+		} while ( $posts_count === $batch_size );
+
+		// Process terms if requested.
+		if ( $include_terms ) {
+			WP_CLI::line( '' );
+			WP_CLI::line( 'Scanning term SEO data…' );
+
+			global $wpdb;
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+			$term_rows = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT term_id, meta_value FROM {$wpdb->termmeta} WHERE meta_key = %s",
+					Yoast_Migrator::PRC_TERM_META_KEY
+				)
+			);
+
+			foreach ( $term_rows as $row ) {
+				++$stats['terms_scanned'];
+				$data    = maybe_unserialize( $row->meta_value );
+				$changed = false;
+
+				if ( ! is_array( $data ) ) {
+					continue;
+				}
+
+				$term_text_fields = array( 'title', 'description' );
+				foreach ( $term_text_fields as $field ) {
+					if ( empty( $data[ $field ] ) || ! is_string( $data[ $field ] ) ) {
+						continue;
+					}
+					if ( preg_match( '/%%[a-z0-9_]+%%/i', $data[ $field ] ) ) {
+						$original      = $data[ $field ];
+						$converted     = Yoast_Migrator::convert_yoast_tokens( $data[ $field ] );
+						$data[ $field ] = $converted;
+						$changed       = true;
+
+						WP_CLI::line(
+							sprintf(
+								'Term %d [%s]: "%s" → "%s"',
+								$row->term_id,
+								$field,
+								$original,
+								$converted
+							)
+						);
+					}
+				}
+
+				if ( $changed ) {
+					++$stats['terms_cleaned'];
+					if ( ! $dry_run ) {
+						update_term_meta( $row->term_id, Yoast_Migrator::PRC_TERM_META_KEY, $data );
+					}
+				}
+			}
+		}
+
+		$this->end_bulk_operation();
+
+		WP_CLI::line( '' );
+		WP_CLI::line( '=== Cleanup Results ===' );
+		WP_CLI::line( sprintf( 'Posts scanned:  %d', $stats['posts_scanned'] ) );
+		WP_CLI::line( sprintf( 'Posts cleaned:  %d', $stats['posts_cleaned'] ) );
+
+		if ( $include_terms ) {
+			WP_CLI::line( sprintf( 'Terms scanned:  %d', $stats['terms_scanned'] ) );
+			WP_CLI::line( sprintf( 'Terms cleaned:  %d', $stats['terms_cleaned'] ) );
+		}
+
+		$total_cleaned = $stats['posts_cleaned'] + $stats['terms_cleaned'];
+		if ( 0 === $total_cleaned ) {
+			WP_CLI::success( 'No Yoast placeholders found. Data is clean.' );
+		} else {
+			WP_CLI::success(
+				$dry_run
+					? sprintf( '%d items would be cleaned.', $total_cleaned )
+					: sprintf( '%d items cleaned successfully.', $total_cleaned )
+			);
+		}
 	}
 
 	/**

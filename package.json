@@ -21,5 +21,6 @@
 	"dependencies": {
 		"@emotion/styled": "^11.14.1",
 		"@wordpress/icons": "^11.3.0"
-	}
+	},
+	"license": "GPL-2.0-or-later"
 }

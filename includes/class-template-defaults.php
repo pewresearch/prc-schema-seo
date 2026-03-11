@@ -444,8 +444,8 @@ class Template_Defaults {
 			return $title;
 		}
 
-		$resolved = $this->resolve_pattern( $defaults['title_pattern'], $post_id );
-		return $resolved ?: $title;
+		$resolved = $this->resolve_pattern( $defaults['title_pattern'], $post_id, $title );
+		return $resolved ? $resolved : $title;
 	}
 
 	/**
@@ -483,8 +483,8 @@ class Template_Defaults {
 			return $description;
 		}
 
-		$resolved = $this->resolve_pattern( $defaults['description_pattern'], $post_id );
-		return $resolved ?: $description;
+		$resolved = $this->resolve_pattern( $defaults['description_pattern'], $post_id, null, $description );
+		return $resolved ? $resolved : $description;
 	}
 
 	/**
@@ -528,267 +528,51 @@ class Template_Defaults {
 	/**
 	 * Resolve pattern tokens to actual values.
 	 *
-	 * @param string $pattern Pattern with tokens.
-	 * @param int    $post_id Post ID for context.
+	 * Delegates to Token_Resolver with template-level overrides. When called from
+	 * apply_title_pattern/apply_description_pattern, the title/description passed
+	 * in have already been post-level resolved by Metadata.
+	 *
+	 * @param string      $pattern     Pattern with tokens.
+	 * @param int         $post_id     Post ID for context.
+	 * @param string|null $title       Resolved SEO title for %post_title% override (from filter).
+	 * @param string|null $description Resolved SEO description for %post_excerpt% override (from filter).
 	 * @return string Resolved pattern.
 	 */
-	private function resolve_pattern( $pattern, $post_id ) {
+	private function resolve_pattern( $pattern, $post_id, $title = null, $description = null ) {
 		if ( empty( $pattern ) ) {
 			return '';
 		}
 
+		$context   = Template_Context::get_current_context();
+		$overrides = array();
+
+		$existing_seo = get_post_meta( $post_id, '_prc_seo_data', true );
 		$post         = get_post( $post_id );
-		$post_type    = $post ? $post->post_type : '';
-		$site_name    = get_bloginfo( 'name' );
-		$site_tagline = get_bloginfo( 'description' );
-		$primary_cat  = $this->get_primary_category_name( $post_id );
-		$year         = $post ? gmdate( 'Y', strtotime( $post->post_date_gmt ) ) : gmdate( 'Y' );
-		$author_name  = $post ? get_the_author_meta( 'display_name', $post->post_author ) : '';
-		$categories   = wp_get_post_terms( $post_id, 'category', array( 'fields' => 'names' ) );
-		$tags         = wp_get_post_terms( $post_id, 'post_tag', array( 'fields' => 'names' ) );
 
-		// Use existing SEO data like title and description if set, otherwise use the post title and excerpt.
-		$existing_seo_data = get_post_meta( $post_id, '_prc_seo_data', true );
-		$title             = isset( $existing_seo_data['title'] ) ? $existing_seo_data['title'] : false;
-		if ( ! $title ) {
-			$title = $post ? $post->post_title : '';
-		}
-		$description = isset( $existing_seo_data['description'] ) ? $existing_seo_data['description'] : false;
-		if ( ! $description ) {
-			$description = $post ? $post->post_excerpt : '';
-		}
-
-		// Resolve %object_title%, %object_type%, and %object_description% tokens based on current context.
-		$object_title       = isset( $existing_seo_data['title'] ) ? $existing_seo_data['title'] : $this->resolve_object_title( $post_id );
-		$object_type        = isset( $existing_seo_data['type'] ) ? $existing_seo_data['type'] : $this->resolve_object_type( $post_id );
-		$object_description = isset( $existing_seo_data['description'] ) ? $existing_seo_data['description'] : $this->resolve_object_description( $post_id );
-
-		/**
-		 * Filter the separator character used in title patterns.
-		 *
-		 * @param string $separator Default separator.
-		 */
-		$separator = apply_filters( 'prc_schema_seo_title_separator', ' | ' );
-
-		$core_tokens = array(
-			'%sep%'                => $separator,
-			'%post_title%'         => $title,
-			'%post_excerpt%'       => $description,
-			'%post_type%'          => $post_type,
-			'%post_date%'          => $post ? gmdate( get_option( 'date_format' ), strtotime( $post->post_date_gmt ) ) : '',
-			'%post_url%'           => $post ? get_permalink( $post_id ) : '',
-			'%site_name%'          => $site_name,
-			'%site_tagline%'       => $site_tagline,
-			'%year%'               => $year,
-			'%author%'             => $author_name,
-			'%primary_category%'   => $primary_cat,
-			'%categories%'         => ! empty( $categories ) ? implode( ', ', $categories ) : '',
-			'%tags%'               => ! empty( $tags ) ? implode( ', ', $tags ) : '',
-			'%object_title%'       => $object_title,
-			'%object_type%'        => $object_type,
-			'%object_description%' => $object_description,
-		);
-
-		$core_tokens = apply_filters( 'prc_schema_seo_pattern_tokens', $core_tokens, $post_id );
-
-		// Replace simple tokens.
-		$value = strtr( $pattern, $core_tokens );
-
-		// Dynamic tokens: %primary_term:taxonomy% and %terms:taxonomy%.
-		if ( preg_match_all( '/%((primary_term|terms):[a-z0-9_-]+)%/i', $value, $matches ) ) {
-			foreach ( $matches[1] as $full ) {
-				list( $type, $taxonomy ) = explode( ':', $full );
-				$replacement             = '';
-				if ( 'primary_term' === $type ) {
-					$replacement = Primary_Term::get_name( $post_id, $taxonomy, true );
-				} elseif ( 'terms' === $type ) {
-					$names       = wp_get_post_terms( $post_id, $taxonomy, array( 'fields' => 'names' ) );
-					$replacement = ! empty( $names ) ? implode( ', ', $names ) : '';
-				}
-				$value = str_replace( '%' . $full . '%', $replacement, $value );
+		$resolved_title = $title;
+		if ( null === $resolved_title ) {
+			$resolved_title = isset( $existing_seo['title'] ) ? $existing_seo['title'] : '';
+			if ( ! $resolved_title && $post ) {
+				$resolved_title = $post->post_title;
 			}
 		}
+		$overrides['%post_title%'] = $resolved_title;
 
-		$value = trim( preg_replace( '/\s+/', ' ', $value ) );
-		return $value;
+		$resolved_desc = $description;
+		if ( null === $resolved_desc ) {
+			$resolved_desc = isset( $existing_seo['description'] ) ? $existing_seo['description'] : '';
+			if ( ! $resolved_desc && $post ) {
+				$resolved_desc = $post->post_excerpt;
+			}
+		}
+		$overrides['%post_excerpt%'] = $resolved_desc;
+
+		$overrides['%object_title%']       = $resolved_title ? $resolved_title : Token_Resolver::resolve_object_title( $post_id );
+		$overrides['%object_type%']        = isset( $existing_seo['type'] ) ? $existing_seo['type'] : Token_Resolver::resolve_object_type( $post_id );
+		$overrides['%object_description%'] = $resolved_desc ? $resolved_desc : Token_Resolver::resolve_object_description( $post_id );
+
+		return Token_Resolver::resolve( $pattern, $post_id, $context, $overrides, false );
 	}
-
-	/**
-	 * Resolve object type based on current context.
-	 *
-	 * This method detects the current WordPress query context and returns
-	 * the object type name/slug:
-	 * - Single post: post type slug
-	 * - Post type archive: post type slug
-	 * - Taxonomy archive: taxonomy slug
-	 *
-	 * @param int $post_id Post ID (optional, for singular contexts).
-	 * @return string Object type slug or empty string.
-	 */
-	private function resolve_object_type( $post_id = 0 ) {
-		// Single post/page/CPT - return post type slug.
-		if ( is_singular() ) {
-			if ( $post_id ) {
-				$post_type = get_post_type_object( get_post_type( $post_id ) );
-				return $post_type ? $post_type->labels->singular_name : '';
-			}
-			// Fallback to current post if no ID provided.
-			global $post;
-			if ( $post ) {
-				$post_type = get_post_type_object( get_post_type( $post->ID ) );
-				return $post_type ? $post_type->labels->singular_name : '';
-			}
-			return '';
-		}
-
-		// Taxonomy archive (category, tag, or custom taxonomy) - return taxonomy slug.
-		if ( is_category() || is_tag() || is_tax() ) {
-			$term = get_queried_object();
-			if ( $term && isset( $term->taxonomy ) ) {
-				$taxonomy = get_taxonomy( $term->taxonomy );
-				return $taxonomy ? $taxonomy->labels->singular_name : '';
-			}
-			return '';
-		}
-
-		// Post type archive - return post type slug.
-		if ( is_post_type_archive() ) {
-			$post_type     = get_query_var( 'post_type' );
-			$post_type     = is_array( $post_type ) ? reset( $post_type ) : $post_type;
-			$post_type_obj = get_post_type_object( $post_type );
-			return $post_type_obj ? $post_type_obj->labels->name : '';
-		}
-
-		// Blog/home - return 'Publications' since it's the global cross post-type archive.
-		if ( is_home() ) {
-			return __( 'Publications', 'prc-schema-seo' );
-		}
-
-		return '';
-	}
-
-	/**
-	 * Resolve object title based on current context.
-	 *
-	 * This method detects the current WordPress query context and returns
-	 * the appropriate title:
-	 * - Single post: post title
-	 * - Single term: term name
-	 * - Post type archive: post type label
-	 * - Taxonomy archive: taxonomy label
-	 *
-	 * @param int $post_id Post ID (optional, for singular contexts).
-	 * @return string Object title or empty string.
-	 */
-	private function resolve_object_title( $post_id = 0 ) {
-		// Single post/page/CPT.
-		if ( is_singular() ) {
-			if ( $post_id ) {
-				return get_the_title( $post_id );
-			}
-			// Fallback to current post if no ID provided.
-			global $post;
-			if ( $post ) {
-				return get_the_title( $post->ID );
-			}
-			return '';
-		}
-
-		// Single term (category, tag, or custom taxonomy term).
-		if ( is_category() || is_tag() || is_tax() ) {
-			$term = get_queried_object();
-			if ( $term && isset( $term->name ) ) {
-				return $term->name;
-			}
-			return '';
-		}
-
-		// Post type archive.
-		if ( is_post_type_archive() ) {
-			$post_type     = get_query_var( 'post_type' );
-			$post_type     = is_array( $post_type ) ? reset( $post_type ) : $post_type;
-			$post_type_obj = get_post_type_object( $post_type );
-			if ( $post_type_obj && isset( $post_type_obj->labels->name ) ) {
-				return $post_type_obj->labels->name;
-			}
-			return '';
-		}
-
-		// Taxonomy archive (general case - not a specific term).
-		// This handles cases where we're viewing a taxonomy archive page.
-		$queried_object = get_queried_object();
-		if ( $queried_object && isset( $queried_object->taxonomy ) ) {
-			$taxonomy_obj = get_taxonomy( $queried_object->taxonomy );
-			if ( $taxonomy_obj && isset( $taxonomy_obj->labels->name ) ) {
-				return $taxonomy_obj->labels->name;
-			}
-		}
-
-		return '';
-	}
-
-	/**
-	 * Resolve object description based on current context.
-	 *
-	 * This method detects the current WordPress query context and returns
-	 * the appropriate description:
-	 * - Single post: post excerpt
-	 * - Single term: term description
-	 * - Post type archive: empty (no default description)
-	 *
-	 * @param int $post_id Post ID (optional, for singular contexts).
-	 * @return string Object description or empty string.
-	 */
-	private function resolve_object_description( $post_id = 0 ) {
-		// Single post/page/CPT - return the post excerpt.
-		if ( is_singular() ) {
-			if ( $post_id ) {
-				$post = get_post( $post_id );
-				if ( $post && ! empty( $post->post_excerpt ) ) {
-					return $post->post_excerpt;
-				}
-				// Fallback: generate excerpt from content if no manual excerpt.
-				if ( $post && ! empty( $post->post_content ) ) {
-					return wp_trim_words( wp_strip_all_tags( $post->post_content ), 55, '...' );
-				}
-			}
-			// Fallback to current post if no ID provided.
-			global $post;
-			if ( $post ) {
-				if ( ! empty( $post->post_excerpt ) ) {
-					return $post->post_excerpt;
-				}
-				// Fallback: generate excerpt from content if no manual excerpt.
-				if ( ! empty( $post->post_content ) ) {
-					return wp_trim_words( wp_strip_all_tags( $post->post_content ), 55, '...' );
-				}
-			}
-			return '';
-		}
-
-		// Single term (category, tag, or custom taxonomy term) - return term description.
-		if ( is_category() || is_tag() || is_tax() ) {
-			$term = get_queried_object();
-			if ( $term && isset( $term->description ) && ! empty( $term->description ) ) {
-				return $term->description;
-			}
-			return get_bloginfo( 'description' );
-		}
-
-		// Post type archive - return post type description.
-		if ( is_post_type_archive() ) {
-			$post_type     = get_query_var( 'post_type' );
-			$post_type     = is_array( $post_type ) ? reset( $post_type ) : $post_type;
-			$post_type_obj = get_post_type_object( $post_type );
-			if ( $post_type_obj && isset( $post_type_obj->description ) && ! empty( $post_type_obj->description ) ) {
-				return $post_type_obj->description;
-			}
-			return get_bloginfo( 'description' );
-		}
-
-		return get_bloginfo( 'description' );
-	}
-
 
 	/**
 	 * Get primary category name.

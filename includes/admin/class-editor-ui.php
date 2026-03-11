@@ -68,6 +68,8 @@ class Editor_UI {
 					'enabledPostTypes'      => $this->get_enabled_post_types_for_js(),
 					'allowedSchemaTypes'    => $this->get_allowed_schema_types(),
 					'primaryTermTaxonomies' => $this->get_primary_term_taxonomies(),
+					'indexnowEnabled'       => defined( 'PRC_PLATFORM_INDEXNOW_KEY' ) && ! empty( PRC_PLATFORM_INDEXNOW_KEY ),
+					'gscEnabled'            => Search_Console::is_configured(),
 				)
 			);
 		}

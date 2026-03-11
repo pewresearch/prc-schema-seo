@@ -230,7 +230,7 @@ class CLI_Benchmark extends WPCOM_VIP_CLI_Command {
 	private function clear_post_cache( $post_id ) {
 		wp_cache_delete( 'seo_data_' . $post_id, SEO_Metadata::CACHE_GROUP );
 		wp_cache_delete( 'schema_' . $post_id, Generator::CACHE_GROUP );
-		wp_cache_delete( 'meta_tags_' . $post_id, 'prc_schema_seo_output' );
+		wp_cache_delete( 'meta_tags_' . $post_id, Meta_Tags::CACHE_GROUP );
 	}
 
 	/**
@@ -239,8 +239,8 @@ class CLI_Benchmark extends WPCOM_VIP_CLI_Command {
 	 * @param int $term_id Term ID.
 	 */
 	private function clear_term_cache( $term_id ) {
-		wp_cache_delete( 'term_schema_' . $term_id, 'prc_schema_seo_output' );
-		wp_cache_delete( 'meta_tags_term_' . $term_id, 'prc_schema_seo_output' );
+		wp_cache_delete( 'term_schema_' . $term_id, Generator::CACHE_GROUP );
+		Meta_Tags::clear_term_meta_tags_cache( $term_id );
 	}
 
 	/**

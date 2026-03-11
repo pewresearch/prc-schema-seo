@@ -262,7 +262,7 @@ class Taxonomy_UI {
 
 		// Invalidate term schema & meta tag caches.
 		wp_cache_delete( 'term_schema_' . $term_id, Generator::CACHE_GROUP );
-		wp_cache_delete( 'meta_tags_term_' . $term_id, Meta_Tags::CACHE_GROUP );
+		Meta_Tags::clear_term_meta_tags_cache( $term_id );
 
 		// Fire action for cache invalidation of related content.
 		do_action( 'prc_schema_seo_term_meta_updated', $term_id, $meta );

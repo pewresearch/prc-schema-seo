@@ -30,7 +30,7 @@ class Generator {
 	/**
 	 * Cache group for schema output.
 	 */
-	const CACHE_GROUP = 'prc_schema_seo_output_v1.4.5';
+	const CACHE_GROUP = 'prc_schema_seo_output_03112026';
 
 	/**
 	 * Cache TTL (1 hour).
@@ -507,10 +507,7 @@ class Generator {
 			->alternateName( array( 'Pew Research', 'PRC' ) )
 			->slogan( 'Numbers, Facts and Trends Shaping Your World' )
 			->foundingDate( '2004-07-01' )
-			->nonprofitStatus(
-				Schema::uSNonprofitType()
-					->identifier( 'https://schema.org/Nonprofit501c3' )
-			)
+			->setProperty( 'nonprofitStatus', 'https://schema.org/Nonprofit501c3' )
 			->parentOrganization( $parent_org )
 			->funder( $parent_org )
 			->publishingPrinciples( 'https://www.pewresearch.org/about/our-mission/' )
@@ -518,7 +515,7 @@ class Generator {
 			->contactPoint( $contact_point )
 			->logo(
 				Schema::imageObject()
-				->url( PRC_LOGO )
+				->url( content_url( 'images/logo.png' ) )
 				->width( 600 )
 				->height( 60 )
 			)
@@ -822,7 +819,7 @@ class Generator {
 				->url( 'https://www.pewresearch.org' )
 				->logo(
 					Schema::imageObject()
-						->url( PRC_LOGO )
+						->url( content_url( 'images/logo.png' ) )
 						->width( 600 )
 						->height( 60 )
 				)

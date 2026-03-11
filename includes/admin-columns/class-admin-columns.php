@@ -68,6 +68,8 @@ class Admin_Columns {
 				require_once __DIR__ . '/columns/class-noindex.php';
 				require_once __DIR__ . '/columns/class-schema-type.php';
 				require_once __DIR__ . '/columns/class-primary-term.php';
+				require_once __DIR__ . '/columns/class-indexnow-status.php';
+				require_once __DIR__ . '/columns/class-google-index-status.php';
 
 				// Register column types.
 				$list_screen->register_column_type( new Columns\Title() );
@@ -75,6 +77,8 @@ class Admin_Columns {
 				$list_screen->register_column_type( new Columns\Noindex() );
 				$list_screen->register_column_type( new Columns\Schema_Type() );
 				$list_screen->register_column_type( new Columns\Primary_Term() );
+				$list_screen->register_column_type( new Columns\IndexNow_Status() );
+				$list_screen->register_column_type( new Columns\Google_Index_Status() );
 			}
 		);
 	}

@@ -74,6 +74,63 @@ class Yoast_Migrator {
 	const PRC_TERM_META_KEY = '_prc_seo_term_data';
 
 	/**
+	 * Yoast %%token%% to PRC %token% mapping.
+	 *
+	 * Tokens mapped to '' are stripped (%%sitename%%, %%sep%% - template adds these).
+	 * Used by migrate and clean-yoast-placeholders CLI.
+	 *
+	 * @var array<string, string>
+	 */
+	const YOAST_TO_PRC_TOKEN_MAP = array(
+		'%%title%%'             => '%post_title%',
+		'%%sitename%%'          => '',
+		'%%sep%%'               => '',
+		'%%primary_category%%'  => '%primary_category%',
+		'%%excerpt%%'           => '%post_excerpt%',
+		'%%excerpt_only%%'      => '%post_excerpt%',
+		'%%date%%'              => '%post_date%',
+		'%%name%%'              => '%author%',
+		'%%category%%'          => '%categories%',
+		'%%tag%%'               => '%tags%',
+		'%%currentyear%%'       => '%year%',
+		'%%page%%'              => '%page%',
+		'%%pagenumber%%'        => '%page_number%',
+		'%%pagetotal%%'         => '%page_total%',
+		'%%pt_single%%'         => '%post_type%',
+		'%%term_title%%'        => '%term_name%',
+		'%%term_description%%'  => '%term_description%',
+		'%%searchphrase%%'      => '%search_query%',
+	);
+
+	/**
+	 * Convert Yoast %%token%% placeholders to PRC %token% equivalents.
+	 *
+	 * Tokens in YOAST_TO_PRC_TOKEN_MAP are converted; %%sitename%% and %%sep%% are stripped.
+	 * Unknown %%...%% tokens are stripped. First removes "%%sep%% Pew Research Center" pattern.
+	 *
+	 * @param string $text Text potentially containing Yoast placeholders.
+	 * @return string Converted text.
+	 */
+	public static function convert_yoast_tokens( string $text ): string {
+		if ( empty( $text ) ) {
+			return $text;
+		}
+
+		// Remove "%%sep%% Pew Research Center" (with optional spaces).
+		$text = preg_replace( '/\s*%%sep%%\s*Pew Research Center/i', '', $text );
+
+		// Apply token mapping (case-insensitive for Yoast token names).
+		foreach ( self::YOAST_TO_PRC_TOKEN_MAP as $yoast => $prc ) {
+			$text = preg_replace( '/\s*' . preg_quote( $yoast, '/' ) . '\s*/i', $prc ? ( ' ' . $prc . ' ' ) : ' ', $text );
+		}
+
+		// Strip any remaining %%...%% placeholders.
+		$text = preg_replace( '/\s*%%[a-z0-9_]+%%\s*/i', ' ', $text );
+
+		return trim( preg_replace( '/\s+/', ' ', $text ) );
+	}
+
+	/**
 	 * Get the list of taxonomies that support primary terms for migration.
 	 *
 	 * Combines Primary_Term::get_supported_taxonomies() with additional
@@ -158,23 +215,6 @@ class Yoast_Migrator {
 	}
 
 	/**
-	 * Clean Yoast separator patterns from title.
-	 *
-	 * Removes patterns like "%%sep%% Pew Research Center" and "%%sep%%"
-	 * that Yoast embedded in titles but are not needed in PRC Schema SEO.
-	 *
-	 * @param string $title The title to clean.
-	 * @return string Cleaned title.
-	 */
-	private function clean_yoast_title_patterns( string $title ): string {
-		// Remove "%%sep%% Pew Research Center" (with optional spaces).
-		$title = preg_replace( '/\s*%%sep%%\s*Pew Research Center/i', '', $title );
-		// Remove any remaining %%sep%% placeholders.
-		$title = preg_replace( '/\s*%%sep%%\s*/', '', $title );
-		return trim( $title );
-	}
-
-	/**
 	 * Transform Yoast post data to PRC Schema SEO format.
 	 *
 	 * @param array $yoast_data Yoast SEO data.
@@ -183,19 +223,16 @@ class Yoast_Migrator {
 	private function transform_post_data( array $yoast_data ): array {
 		$prc_data = array();
 
-		// Title fields that need separator pattern cleaning.
-		$title_fields = array( 'title', 'og_title', 'twitter_title' );
-		foreach ( $title_fields as $field ) {
+		// Title and description fields: convert Yoast tokens to PRC equivalents.
+		$text_fields = array( 'title', 'og_title', 'twitter_title', 'description', 'og_description', 'twitter_description' );
+		foreach ( $text_fields as $field ) {
 			if ( isset( $yoast_data[ $field ] ) && '' !== $yoast_data[ $field ] ) {
-				$prc_data[ $field ] = $this->clean_yoast_title_patterns( $yoast_data[ $field ] );
+				$prc_data[ $field ] = self::convert_yoast_tokens( $yoast_data[ $field ] );
 			}
 		}
 
-		// Direct mappings for non-title fields.
+		// Direct mappings for non-text fields.
 		$direct_fields = array(
-			'description',
-			'og_description',
-			'twitter_description',
 			'canonical_url',
 			'primary_terms',
 		);
@@ -231,12 +268,12 @@ class Yoast_Migrator {
 	private function transform_term_data( array $yoast_data ): array {
 		$prc_data = array();
 
-		// Title field needs separator pattern cleaning.
+		// Title and description: convert Yoast tokens to PRC equivalents.
 		if ( isset( $yoast_data['title'] ) && '' !== $yoast_data['title'] ) {
-			$prc_data['title'] = $this->clean_yoast_title_patterns( $yoast_data['title'] );
+			$prc_data['title'] = self::convert_yoast_tokens( $yoast_data['title'] );
 		}
 		if ( isset( $yoast_data['description'] ) && '' !== $yoast_data['description'] ) {
-			$prc_data['description'] = $yoast_data['description'];
+			$prc_data['description'] = self::convert_yoast_tokens( $yoast_data['description'] );
 		}
 
 		// Image ID.
@@ -419,7 +456,7 @@ class Yoast_Migrator {
 
 		// Clear caches.
 		wp_cache_delete( 'term_schema_' . $term_id, Generator::CACHE_GROUP );
-		wp_cache_delete( 'meta_tags_term_' . $term_id, Meta_Tags::CACHE_GROUP );
+		Meta_Tags::clear_term_meta_tags_cache( $term_id );
 
 		$result['success'] = true;
 		$result['message'] = sprintf( 'Term ID %d migrated successfully.', $term_id );
@@ -618,7 +655,7 @@ class Yoast_Migrator {
 		// Count posts with Yoast meta.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$yoast_post_count                   = $wpdb->get_var(
-			"SELECT COUNT(DISTINCT post_id) FROM {$wpdb->postmeta} 
+			"SELECT COUNT(DISTINCT post_id) FROM {$wpdb->postmeta}
 			WHERE meta_key LIKE '_yoast_wpseo_%'"
 		);
 		$status['posts']['with_yoast_meta'] = (int) $yoast_post_count;

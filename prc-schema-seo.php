@@ -37,11 +37,6 @@ define( 'PRC_SCHEMA_SEO_DIR', __DIR__ );
 define( 'PRC_SCHEMA_SEO_VERSION', '1.0.0' );
 define( 'PRC_SCHEMA_SEO_DISABLE_CACHE', false );
 
-// Fallback for PRC_LOGO when not defined by platform.
-if ( ! defined( 'PRC_LOGO' ) ) {
-	define( 'PRC_LOGO', 'https://www.pewresearch.org/images/favicon/apple-touch-icon.png' );
-}
-
 /**
  * The code that runs during plugin activation.
  * This action is documented in includes/class-plugin-activator.php

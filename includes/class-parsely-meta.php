@@ -20,7 +20,7 @@ class Parsely_Meta {
 	/**
 	 * Cache group for rendered Parsely meta tags (shares group with Meta_Tags for unified invalidation).
 	 */
-	const CACHE_GROUP = 'prc_schema_seo_output';
+	const CACHE_GROUP = 'prc_schema_seo_parsely_03112026';
 
 	/**
 	 * Cache TTL (1 hour).
@@ -113,13 +113,18 @@ class Parsely_Meta {
 			return $cached;
 		}
 
-		$data      = $this->seo_metadata->get_seo_data( $post_id );
+		$data = $this->seo_metadata->get_seo_data( $post_id );
+
+		// Parsely wants the raw post title, not the template-wrapped SEO title
+		// (e.g. "Post Title" not "Post Title | Pew Research Center").
+		$parsely_title = $this->get_parsely_title_post( $post_id, $data );
+
 		$data      = $this->seo_metadata->resolve_for_display( $data, $post_id );
 		$canonical = ! empty( $data['canonical_url'] ) ? $data['canonical_url'] : get_permalink( $post_id );
 		$canonical = apply_filters( 'prc_schema_seo_canonical_url', $canonical, $post_id, $data );
 
 		$tags = array(
-			'parsely-title'     => $this->get_parsely_title_post( $post_id, $data ),
+			'parsely-title'     => $parsely_title,
 			'parsely-link'      => $canonical,
 			'parsely-type'      => $this->get_parsely_type_post( $post_type ),
 			'parsely-tags'      => $this->get_parsely_tags( $post_id ),

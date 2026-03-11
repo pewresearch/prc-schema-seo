@@ -63,6 +63,7 @@ class Plugin {
 
 		// Load required class files
 		require_once __DIR__ . '/class-primary-term.php';
+		require_once __DIR__ . '/class-token-resolver.php';
 		require_once __DIR__ . '/class-metadata.php';
 		require_once __DIR__ . '/class-rest-api.php';
 
@@ -84,6 +85,12 @@ class Plugin {
 
 		// Sitemap integration (conditional on sitemap plugin)
 		require_once __DIR__ . '/class-sitemap-integration.php';
+
+		// IndexNow search engine notification
+		require_once __DIR__ . '/class-indexnow.php';
+
+		// Google Search Console URL Inspection
+		require_once __DIR__ . '/class-search-console.php';
 
 		// User Interface for various contexts
 		require_once __DIR__ . '/admin/class-taxonomy-ui.php';
@@ -144,6 +151,12 @@ class Plugin {
 
 		// Sitemap integration (only hooks if sitemap plugin is active)
 		new Sitemap_Integration( $this->get_loader() );
+
+		// IndexNow: notify search engines when content changes
+		new IndexNow( $this->get_loader() );
+
+		// Google Search Console: surface index status in the editor
+		new Search_Console( $this->get_loader() );
 
 		// Admin Columns Pro integration (hooks only fire if Admin Columns is active)
 		new Admin_Columns( $this->get_loader() );

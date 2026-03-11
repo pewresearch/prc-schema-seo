@@ -73,6 +73,12 @@ class REST_API {
 		$post_id  = $object['id'];
 		$seo_data = $this->seo_metadata->get_seo_data( $post_id );
 
+		$submitted_at = get_post_meta( $post_id, '_prc_schema_seo_indexnow_submitted_at', true );
+		$seo_data['indexnow_submitted_at'] = $submitted_at ? (int) $submitted_at : null;
+
+		$gsc_data = get_post_meta( $post_id, Search_Console::META_KEY, true );
+		$seo_data['gsc_index_status'] = is_array( $gsc_data ) && ! empty( $gsc_data ) ? $gsc_data : null;
+
 		return apply_filters( 'prc_schema_seo_rest_prepare', $seo_data, $post_id );
 	}
 
@@ -111,6 +117,9 @@ class REST_API {
 				array( 'status' => 400 )
 			);
 		}
+
+		unset( $value['indexnow_submitted_at'] );
+		unset( $value['gsc_index_status'] );
 
 		// Strip primary term mappings that don't belong to the post's assigned terms.
 		if ( isset( $value['primary_terms'] ) && is_array( $value['primary_terms'] ) ) {
@@ -240,9 +249,40 @@ class REST_API {
 					'type'        => 'object',
 					'description' => __( 'Primary term IDs per taxonomy.', 'prc-schema-seo' ),
 				),
-				'custom_schema'  => array(
+				'custom_schema'          => array(
 					'type'        => 'object',
 					'description' => __( 'Additional schema.org properties.', 'prc-schema-seo' ),
+				),
+				'indexnow_submitted_at' => array(
+					'type'        => array( 'integer', 'null' ),
+					'description' => __( 'Unix timestamp of last IndexNow submission.', 'prc-schema-seo' ),
+					'readOnly'    => true,
+				),
+				'gsc_index_status'     => array(
+					'type'        => array( 'object', 'null' ),
+					'description' => __( 'Google Search Console URL Inspection data.', 'prc-schema-seo' ),
+					'readOnly'    => true,
+					'properties'  => array(
+						'verdict'              => array( 'type' => 'string' ),
+						'coverage_state'       => array( 'type' => 'string' ),
+						'robotstxt_state'      => array( 'type' => 'string' ),
+						'indexing_state'       => array( 'type' => 'string' ),
+						'last_crawl_time'      => array( 'type' => array( 'string', 'null' ) ),
+						'page_fetch_state'     => array( 'type' => 'string' ),
+						'crawled_as'           => array( 'type' => 'string' ),
+						'mobile_verdict'       => array( 'type' => 'string' ),
+						'mobile_issues'        => array(
+							'type'  => 'array',
+							'items' => array( 'type' => 'string' ),
+						),
+						'rich_results_verdict' => array( 'type' => 'string' ),
+						'rich_results_issues'  => array(
+							'type'  => 'array',
+							'items' => array( 'type' => 'string' ),
+						),
+						'inspection_link'      => array( 'type' => 'string' ),
+						'fetched_at'           => array( 'type' => 'integer' ),
+					),
 				),
 			),
 		);

@@ -18,7 +18,7 @@ class Meta_Tags {
 	/**
 	 * Cache group for rendered meta tags (shares group with schema output for unified invalidation).
 	 */
-	const CACHE_GROUP = 'prc_schema_seo_output';
+	const CACHE_GROUP = 'prc_schema_seo_meta_tags_03112026';
 
 	/**
 	 * Cache TTL (1 hour).
@@ -62,6 +62,8 @@ class Meta_Tags {
 		$this->loader->add_action( 'wp_head', $this, 'output_term_meta_tags', 2 );
 		// Post type archive meta tags.
 		$this->loader->add_action( 'wp_head', $this, 'output_post_type_archive_meta_tags', 2 );
+		// Blog home (publications) meta tags.
+		$this->loader->add_action( 'wp_head', $this, 'output_home_meta_tags', 2 );
 
 		// Allow theme to adjust document title parts using our resolved <title/> tag.
 		$this->loader->add_filter( 'pre_get_document_title', $this, 'filter_document_title', 10 );
@@ -71,6 +73,9 @@ class Meta_Tags {
 
 		// Filter WordPress core robots meta tag (WordPress handles output via wp_robots()).
 		$this->loader->add_filter( 'wp_robots', $this, 'filter_robots', 10 );
+
+		// Redirect paginated front page requests back to the home URL.
+		$this->loader->add_action( 'template_redirect', $this, 'redirect_paginated_front_page' );
 	}
 
 	/**
@@ -123,28 +128,47 @@ class Meta_Tags {
 		$noindex = false;
 		$data    = array();
 
-		// Force noindex in non-production environments.
-		if ( function_exists( 'wp_get_environment_type' ) && 'production' !== wp_get_environment_type() ) {
+		// Force noindex in staging environments.
+		if ( function_exists( 'wp_get_environment_type' ) && 'staging' === wp_get_environment_type() ) {
 			$robots['noindex'] = true;
 			$robots['follow']  = true;
 			return $robots;
 		}
 
-		// Noindex paginated archive pages.
-		if ( is_paged() ) {
+		// Enforce noindex for sites set to be not public.
+		// An extra safety check to ensure that the site is not public.
+		if ( true !== (bool) get_option( 'blog_public' ) ) {
 			$robots['noindex'] = true;
 			$robots['follow']  = true;
 			return $robots;
 		}
 
-		// Noindex faceted search pages (PRC-specific query vars).
-		$faceted_search_vars = array( 'formats', 'research-areas', 'topic', 'subtopic' );
-		foreach ( $faceted_search_vars as $var ) {
-			if ( ! empty( get_query_var( $var ) ) ) {
+		// Noindex faceted archive and search pages.
+		// We allow some safe params to be indexed.
+		if ( ! is_singular() && ! empty( $_GET ) ) {
+			$safe_params   = array( 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content' );
+			$actual_params = array_diff( array_keys( $_GET ), $safe_params );
+			if ( ! empty( $actual_params ) ) {
 				$robots['noindex'] = true;
 				$robots['follow']  = true;
 				return $robots;
 			}
+		}
+
+		// Attachment pages should never be indexed; canonical already points to parent.
+		if ( is_attachment() ) {
+			$robots['noindex'] = true;
+			$robots['follow']  = true;
+			return $robots;
+		}
+
+		// Noindex paginated pages for archive types that lack canonical URL output
+		// from this plugin (author, date). Term archives, post type archives, and
+		// the blog home have proper paginated canonicals and are intentionally excluded.
+		if ( is_paged() && ! is_category() && ! is_tag() && ! is_tax() && ! is_post_type_archive() && ! is_home() && ! is_author() && ! is_date() && ! is_singular() ) {
+			$robots['noindex'] = true;
+			$robots['follow']  = true;
+			return $robots;
 		}
 
 		// Handle singular posts.
@@ -200,6 +224,26 @@ class Meta_Tags {
 	}
 
 	/**
+	 * Redirect paginated front page requests to the home URL.
+	 *
+	 * The front page has no meaningful paginated content. Requests like
+	 * /page/2/ (paged query var) or <!--nextpage--> splits (page query var)
+	 * are 301-redirected to consolidate link equity and prevent indexing of
+	 * duplicate/empty pages.
+	 *
+	 * @hook template_redirect
+	 */
+	public function redirect_paginated_front_page() {
+		if ( ! is_front_page() ) {
+			return;
+		}
+		if ( get_query_var( 'paged' ) > 1 || get_query_var( 'page' ) > 1 ) {
+			wp_safe_redirect( home_url( '/' ), 301 );
+			exit;
+		}
+	}
+
+	/**
 	 * Filter document title to use resolved SEO title when present.
 	 *
 	 * Handles all template contexts:
@@ -239,7 +283,7 @@ class Meta_Tags {
 			if ( $term && ! empty( $term->term_id ) ) {
 				$meta_data = get_term_meta( $term->term_id, '_prc_seo_term_data', true );
 				if ( is_array( $meta_data ) && ! empty( $meta_data['title'] ) ) {
-					return $meta_data['title'];
+					return $this->maybe_append_page_number( html_entity_decode( $meta_data['title'], ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
 				}
 				// Fallback to template defaults.
 				$template_defaults = new Template_Defaults( $this->loader );
@@ -247,11 +291,11 @@ class Meta_Tags {
 				if ( ! empty( $defaults['title_pattern'] ) ) {
 					$resolved = $this->resolve_archive_title_pattern( $defaults['title_pattern'], $term );
 					if ( ! empty( $resolved ) ) {
-						return $resolved;
+						return $this->maybe_append_page_number( $resolved );
 					}
 				}
 				// Default to term name with site name.
-				return $term->name . ' | ' . get_bloginfo( 'name' );
+				return $this->maybe_append_page_number( html_entity_decode( $term->name, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) . ' | ' . get_bloginfo( 'name' ) );
 			}
 			return $title;
 		}
@@ -263,7 +307,7 @@ class Meta_Tags {
 			if ( ! empty( $defaults['title_pattern'] ) ) {
 				$resolved = $this->resolve_archive_title_pattern( $defaults['title_pattern'] );
 				if ( ! empty( $resolved ) ) {
-					return $resolved;
+					return $this->maybe_append_page_number( $resolved );
 				}
 			}
 			// Default fallback.
@@ -271,7 +315,7 @@ class Meta_Tags {
 			$post_type     = is_array( $post_type ) ? reset( $post_type ) : $post_type;
 			$post_type_obj = get_post_type_object( $post_type );
 			if ( $post_type_obj ) {
-				return $post_type_obj->labels->name . ' | ' . get_bloginfo( 'name' );
+				return $this->maybe_append_page_number( $post_type_obj->labels->name . ' | ' . get_bloginfo( 'name' ) );
 			}
 			return $title;
 		}
@@ -335,10 +379,10 @@ class Meta_Tags {
 			if ( ! empty( $defaults['title_pattern'] ) ) {
 				$resolved = $this->resolve_archive_title_pattern( $defaults['title_pattern'] );
 				if ( ! empty( $resolved ) ) {
-					return $resolved;
+					return $this->maybe_append_page_number( $resolved );
 				}
 			}
-			return $title;
+			return $this->maybe_append_page_number( $title );
 		}
 
 		// Handle author archives.
@@ -352,10 +396,10 @@ class Meta_Tags {
 					array( $separator, $author ? $author->display_name : '', get_bloginfo( 'name' ) ),
 					$defaults['title_pattern']
 				);
-				return $resolved;
+				return $this->maybe_append_page_number( $resolved );
 			}
 			if ( $author ) {
-				return $author->display_name . ' | ' . get_bloginfo( 'name' );
+				return $this->maybe_append_page_number( $author->display_name . ' | ' . get_bloginfo( 'name' ) );
 			}
 			return $title;
 		}
@@ -378,63 +422,52 @@ class Meta_Tags {
 					array( $separator, $date_title, get_bloginfo( 'name' ) ),
 					$defaults['title_pattern']
 				);
-				return $resolved;
+				return $this->maybe_append_page_number( $resolved );
 			}
-			return $title;
+			return $this->maybe_append_page_number( $title );
 		}
 
 		return $title;
 	}
 
 	/**
+	 * Insert "(Page N)" into a title when on a paginated archive page.
+	 *
+	 * Places the suffix before the last " | " separator so the result reads
+	 * "Publications (Page 2) | Pew Research Center" rather than appending
+	 * a third segment.
+	 *
+	 * @param string $title The resolved title.
+	 * @return string Title with page suffix when applicable.
+	 */
+	private function maybe_append_page_number( string $title ): string {
+		$paged = absint( get_query_var( 'paged', 0 ) );
+		if ( $paged > 1 ) {
+			/* translators: %d: page number */
+			$suffix = sprintf( __( '(Page %d)', 'prc-schema-seo' ), $paged );
+			$pos    = strrpos( $title, ' | ' );
+			if ( false !== $pos ) {
+				$title = substr( $title, 0, $pos ) . ' ' . $suffix . substr( $title, $pos );
+			} else {
+				$title .= ' ' . $suffix;
+			}
+		}
+		return $title;
+	}
+
+	/**
 	 * Resolve title pattern tokens for archive pages.
 	 *
-	 * @param string       $pattern The title pattern with tokens.
-	 * @param WP_Term|null $term    Optional term object for taxonomy archives.
+	 * Delegates to Token_Resolver with archive context (post_id 0). Term and
+	 * post-type tokens are populated from the current query.
+	 *
+	 * @param string        $pattern The title pattern with tokens.
+	 * @param \WP_Term|null $term   Optional term object (unused; Token_Resolver uses get_queried_object()).
 	 * @return string Resolved title.
 	 */
-	private function resolve_archive_title_pattern( $pattern, $term = null ) {
-		$separator = apply_filters( 'prc_schema_seo_title_separator', ' | ' );
-		$tokens    = array(
-			'%sep%'          => $separator,
-			'%site_name%'    => get_bloginfo( 'name' ),
-			'%site_tagline%' => get_bloginfo( 'description' ),
-		);
-
-		do_action( 'qm/debug', 'resolve_archive_title_pattern' );
-		do_action( 'qm/debug', 'pattern: ' . print_r( $pattern, true ) );
-		do_action( 'qm/debug', 'term: ' . print_r( $term, true ) );
-
-		// Add term-specific tokens.
-		if ( $term ) {
-			$tokens['%term_name%']        = $term->name;
-			$tokens['%term_description%'] = wp_strip_all_tags( term_description( $term->term_id ) );
-			$tokens['%taxonomy%']         = $term->taxonomy;
-
-			$taxonomy_obj               = get_taxonomy( $term->taxonomy );
-			$tokens['%taxonomy_label%'] = $taxonomy_obj ? $taxonomy_obj->labels->singular_name : $term->taxonomy;
-
-			// Support %object_title% as an alias for %term_name%.
-			$tokens['%object_title%'] = $term->name;
-		}
-
-		// Add blog/home page tokens.
-		if ( is_home() ) {
-			$tokens['%object_title%'] = 'Publications';
-		}
-
-		// Add post type archive tokens.
-		if ( is_post_type_archive() ) {
-			do_action( 'qm/debug', 'is_post_type_archive()' );
-			$post_type     = get_query_var( 'post_type' );
-			$post_type     = is_array( $post_type ) ? reset( $post_type ) : $post_type;
-			$post_type_obj = get_post_type_object( $post_type );
-
-			$tokens['%post_type%']    = $post_type;
-			$tokens['%object_title%'] = $post_type_obj ? $post_type_obj->labels->name : $post_type;
-		}
-
-		return strtr( $pattern, $tokens );
+	private function resolve_archive_title_pattern( $pattern, $term = null ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Kept for API compatibility.
+		$context = Template_Context::get_current_context();
+		return Token_Resolver::resolve( $pattern, 0, $context, array(), false );
 	}
 
 	/**
@@ -584,15 +617,23 @@ class Meta_Tags {
 	 *
 	 * @param int    $term_id  Term ID.
 	 * @param string $taxonomy Taxonomy slug.
+	 * @param int    $paged    Current pagination page number (1-based).
 	 * @return string Meta tags HTML. Empty string if term not found.
 	 */
-	public function warm_term_cache( int $term_id, string $taxonomy ): string {
+	public function warm_term_cache( int $term_id, string $taxonomy, int $paged = 1 ): string {
 		$term = get_term( $term_id, $taxonomy );
 		if ( ! $term || is_wp_error( $term ) ) {
 			return '';
 		}
 
-		$cache_key = 'meta_tags_term_' . $term_id;
+		$version_key = 'meta_tags_term_version_' . $term_id;
+		$version     = wp_cache_get( $version_key, self::CACHE_GROUP );
+		if ( false === $version ) {
+			$version = 1;
+			wp_cache_add( $version_key, $version, self::CACHE_GROUP );
+		}
+
+		$cache_key = 'meta_tags_term_' . $term_id . '_v' . $version . '_page_' . $paged;
 		$cached    = wp_cache_get( $cache_key, self::CACHE_GROUP );
 		if ( false !== $cached ) {
 			return $cached;
@@ -601,15 +642,41 @@ class Meta_Tags {
 		$meta_data = get_term_meta( $term_id, '_prc_seo_term_data', true );
 		$meta_data = is_array( $meta_data ) ? $meta_data : array();
 
-		$title             = ! empty( $meta_data['title'] ) ? $meta_data['title'] : $term->name;
-		$description       = ! empty( $meta_data['description'] ) ? $meta_data['description'] : term_description( $term_id );
-		$description       = wp_strip_all_tags( $description );
+		$title = html_entity_decode(
+			! empty( $meta_data['title'] ) ? $meta_data['title'] : $term->name,
+			ENT_QUOTES | ENT_HTML5,
+			'UTF-8'
+		);
+		if ( $paged > 1 ) {
+			/* translators: %d: page number */
+			$suffix = sprintf( __( '(Page %d)', 'prc-schema-seo' ), $paged );
+			$pos    = strrpos( $title, ' | ' );
+			if ( false !== $pos ) {
+				$title = substr( $title, 0, $pos ) . ' ' . $suffix . substr( $title, $pos );
+			} else {
+				$title .= ' ' . $suffix;
+			}
+		}
+		$description       = html_entity_decode(
+			wp_strip_all_tags( ! empty( $meta_data['description'] ) ? $meta_data['description'] : term_description( $term_id ) ),
+			ENT_QUOTES | ENT_HTML5,
+			'UTF-8'
+		);
 		$og_image_id       = ! empty( $meta_data['og_image'] ) ? absint( $meta_data['og_image'] ) : 0;
 		$default_canonical = get_term_link( $term );
-		$canonical         = ! empty( $meta_data['canonical_url'] ) ? $meta_data['canonical_url'] : $default_canonical;
+		if ( ! is_wp_error( $default_canonical ) && $paged > 1 ) {
+			$default_canonical = trailingslashit( $default_canonical ) . 'page/' . $paged . '/';
+		}
+		$canonical = ! empty( $meta_data['canonical_url'] ) ? $meta_data['canonical_url'] : $default_canonical;
 
 		if ( is_wp_error( $canonical ) ) {
 			$canonical = $default_canonical;
+		}
+
+		// Append the pagination suffix to custom canonical URLs on paginated pages.
+		// The custom URL represents page 1; pages 2+ must get their own canonical.
+		if ( $paged > 1 && ! empty( $meta_data['canonical_url'] ) ) {
+			$canonical = trailingslashit( $canonical ) . 'page/' . $paged . '/';
 		}
 
 		$og_image_url = $og_image_id ? wp_get_attachment_image_url( $og_image_id, 'full' ) : '';
@@ -635,6 +702,24 @@ class Meta_Tags {
 	}
 
 	/**
+	 * Clear all paginated meta tag caches for a term.
+	 *
+	 * Increments the term's cache version counter so every existing
+	 * page-specific cache entry (keyed with the old version) becomes a
+	 * miss on next read. Orphaned entries expire naturally via CACHE_TTL.
+	 *
+	 * @param int $term_id Term ID.
+	 */
+	public static function clear_term_meta_tags_cache( int $term_id ): void {
+		$version_key = 'meta_tags_term_version_' . $term_id;
+		$result      = wp_cache_incr( $version_key, 1, self::CACHE_GROUP );
+		if ( false === $result ) {
+			wp_cache_set( $version_key, 2, self::CACHE_GROUP );
+		}
+		wp_cache_delete( 'meta_tags_term_' . $term_id, self::CACHE_GROUP );
+	}
+
+	/**
 	 * Output meta tags for term archive pages.
 	 *
 	 * @return void
@@ -651,13 +736,91 @@ class Meta_Tags {
 			return;
 		}
 
-		$html = $this->warm_term_cache( $term->term_id, $term->taxonomy );
+		$paged = max( 1, absint( get_query_var( 'paged', 1 ) ) );
+		$html  = $this->warm_term_cache( $term->term_id, $term->taxonomy, $paged );
 		if ( '' === $html ) {
 			return;
 		}
 
 		echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		do_action( 'prc_schema_seo_after_meta_tags', $term->term_id, $html );
+	}
+
+	/**
+	 * Output meta tags for the blog home (publications) page.
+	 *
+	 * @return void
+	 */
+	public function output_home_meta_tags() {
+		if ( ! is_home() ) {
+			return;
+		}
+
+		$paged     = max( 1, absint( get_query_var( 'paged', 1 ) ) );
+		$cache_key = 'meta_tags_home_page_' . $paged;
+		$cached    = wp_cache_get( $cache_key, self::CACHE_GROUP );
+		if ( false !== $cached ) {
+			echo $cached; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Pre-escaped HTML string.
+			do_action( 'prc_schema_seo_after_meta_tags', 0, $cached );
+			return;
+		}
+
+		$context = array(
+			'type'      => Template_Context::CONTEXT_BLOG,
+			'key'       => 'blog',
+			'post_type' => 'post',
+			'taxonomy'  => '',
+			'label'     => __( 'Blog', 'prc-schema-seo' ),
+		);
+
+		$template_defaults = new Template_Defaults( $this->loader );
+		$defaults          = $template_defaults->get_template_defaults( $context );
+
+		$title = __( 'Publications', 'prc-schema-seo' ) . ' | ' . get_bloginfo( 'name' );
+		if ( ! empty( $defaults['title_pattern'] ) ) {
+			$resolved_title = $this->resolve_archive_title_pattern( $defaults['title_pattern'] );
+			if ( ! empty( $resolved_title ) ) {
+				$title = $resolved_title;
+			}
+		}
+		$title = $this->maybe_append_page_number( $title );
+
+		$description = '';
+		if ( ! empty( $defaults['description_pattern'] ) ) {
+			$resolved_description = $this->resolve_archive_description_pattern( $defaults['description_pattern'] );
+			if ( ! empty( $resolved_description ) ) {
+				$description = $resolved_description;
+			}
+		}
+
+		$page_for_posts = absint( get_option( 'page_for_posts' ) );
+		$canonical      = $page_for_posts ? get_permalink( $page_for_posts ) : home_url( '/' );
+		if ( $paged > 1 ) {
+			$canonical = trailingslashit( $canonical ) . 'page/' . $paged . '/';
+		}
+
+		$og_image_id  = ! empty( $defaults['og_image'] ) ? absint( $defaults['og_image'] ) : 0;
+		$og_image_url = $og_image_id ? wp_get_attachment_image_url( $og_image_id, 'full' ) : '';
+		$og_image_url = apply_filters( 'prc_schema_seo_og_image_url', $og_image_url, 0, $defaults );
+
+		$meta = array(
+			'description'    => $description,
+			'og:locale'      => get_locale(),
+			'og:type'        => 'website',
+			'og:site_name'   => get_bloginfo( 'name' ),
+			'og:title'       => $title,
+			'og:description' => $description,
+			'og:url'         => $canonical,
+			'og:image'       => $og_image_url,
+			'twitter:card'   => $og_image_url ? 'summary_large_image' : 'summary',
+			'canonical'      => $canonical,
+		);
+
+		$meta = apply_filters( 'prc_schema_seo_meta_tags', $meta, 0, $defaults );
+		$html = $this->build_meta_html( $meta );
+		wp_cache_set( $cache_key, $html, self::CACHE_GROUP, self::CACHE_TTL );
+		echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped when building string.
+		do_action( 'prc_schema_seo_after_meta_tags', 0, $html );
 	}
 
 	/**
@@ -682,12 +845,26 @@ class Meta_Tags {
 			return;
 		}
 
-		$cache_key = 'meta_tags_post_type_archive_' . $post_type;
-		$cached    = wp_cache_get( $cache_key, self::CACHE_GROUP );
-		if ( false !== $cached ) {
-			echo $cached; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Pre-escaped HTML string.
-			do_action( 'prc_schema_seo_after_meta_tags', 0, $cached );
-			return;
+		/**
+		 * Filter whether to cache meta tag output for a post type archive.
+		 *
+		 * Post type archives whose meta varies per URL (e.g. RLS sub-pages)
+		 * should return false to prevent stale canonical/OG data.
+		 *
+		 * @param bool   $should_cache Whether to cache. Default true.
+		 * @param string $post_type    Post type slug.
+		 */
+		$should_cache = apply_filters( 'prc_schema_seo_cache_post_type_archive_meta_tags', true, $post_type );
+
+		$paged     = max( 1, absint( get_query_var( 'paged', 1 ) ) );
+		$cache_key = 'meta_tags_post_type_archive_' . $post_type . '_page_' . $paged;
+		if ( $should_cache ) {
+			$cached = wp_cache_get( $cache_key, self::CACHE_GROUP );
+			if ( false !== $cached ) {
+				echo $cached; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Pre-escaped HTML string.
+				do_action( 'prc_schema_seo_after_meta_tags', 0, $cached );
+				return;
+			}
 		}
 
 		// Build template context for this post type archive.
@@ -715,6 +892,7 @@ class Meta_Tags {
 				$title = $resolved_title;
 			}
 		}
+		$title = $this->maybe_append_page_number( $title );
 
 		// Resolve description - use template pattern or fallback to post type description.
 		$description = ! empty( $post_type_obj->description ) ? wp_strip_all_tags( $post_type_obj->description ) : '';
@@ -725,8 +903,11 @@ class Meta_Tags {
 			}
 		}
 
-		// Get canonical URL.
+		// Get canonical URL (self-referencing for paginated pages).
 		$canonical = get_post_type_archive_link( $post_type );
+		if ( $paged > 1 ) {
+			$canonical = trailingslashit( $canonical ) . 'page/' . $paged . '/';
+		}
 
 		// Get OG image from template defaults.
 		$og_image_id  = ! empty( $defaults['og_image'] ) ? absint( $defaults['og_image'] ) : 0;
@@ -749,7 +930,9 @@ class Meta_Tags {
 
 		$meta = apply_filters( 'prc_schema_seo_meta_tags', $meta, 0, $defaults );
 		$html = $this->build_meta_html( $meta );
-		wp_cache_set( $cache_key, $html, self::CACHE_GROUP, self::CACHE_TTL );
+		if ( $should_cache ) {
+			wp_cache_set( $cache_key, $html, self::CACHE_GROUP, self::CACHE_TTL );
+		}
 		echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped when building string.
 		do_action( 'prc_schema_seo_after_meta_tags', 0, $html );
 	}
@@ -757,26 +940,15 @@ class Meta_Tags {
 	/**
 	 * Resolve description pattern tokens for post type archive pages.
 	 *
+	 * Delegates to Token_Resolver with archive context (post_id 0).
+	 *
 	 * @param string             $pattern       The description pattern with tokens.
-	 * @param \WP_Post_Type|null $post_type_obj Optional post type object.
+	 * @param \WP_Post_Type|null $post_type_obj Optional post type object (unused; Token_Resolver uses query).
 	 * @return string Resolved description.
 	 */
-	private function resolve_archive_description_pattern( $pattern, $post_type_obj = null ) {
-		$separator = apply_filters( 'prc_schema_seo_title_separator', ' | ' );
-		$tokens    = array(
-			'%sep%'          => $separator,
-			'%site_name%'    => get_bloginfo( 'name' ),
-			'%site_tagline%' => get_bloginfo( 'description' ),
-		);
-
-		// Add post type archive tokens.
-		if ( $post_type_obj ) {
-			$tokens['%post_type%']          = $post_type_obj->name;
-			$tokens['%object_title%']       = $post_type_obj->labels->name;
-			$tokens['%object_description%'] = ! empty( $post_type_obj->description ) ? wp_strip_all_tags( $post_type_obj->description ) : get_bloginfo( 'description' );
-		}
-
-		return strtr( $pattern, $tokens );
+	private function resolve_archive_description_pattern( $pattern, $post_type_obj = null ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Kept for API compatibility.
+		$context = Template_Context::get_current_context();
+		return Token_Resolver::resolve( $pattern, 0, $context, array(), false );
 	}
 
 	/**
