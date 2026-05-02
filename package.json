@@ -1,26 +1,20 @@
 {
 	"name": "@prc/schema-seo",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"description": "Provides a module for PRC Platform that...",
 	"scripts": {
-		"build": "wp-scripts build --source-path=src/block-editor/ --output-path=build/block-editor/; wp-scripts build --source-path=src/site-editor/ --output-path=build/site-editor/; wp-scripts build --source-path=src/admin-surfaces/redirect-csv-import/ --output-path=build/admin-surfaces/redirect-csv-import/",
-		"i18n:pot": "echo 'POT file manually maintained in languages/prc-schema-seo.pot. Update manually or use WP-CLI: wp i18n make-pot . languages/prc-schema-seo.pot --domain=prc-schema-seo'",
-		"test": "wp-scripts test-playwright",
-		"test:clean": "wp-env clean all && wp-env start && wp-scripts test-playwright",
-		"test:env:start": "wp-env start",
-		"test:env:stop": "wp-env stop",
-		"test:env:clean": "wp-env clean all && wp-env start",
-		"test:env:destroy": "wp-env destroy"
+		"build": "wp-scripts build --source-path=src/block-editor/ --output-path=build/block-editor/ && node ./scripts/prepend-block-editor-pragma.cjs && wp-scripts build --source-path=src/site-editor/ --output-path=build/site-editor/ && wp-scripts build --source-path=src/admin-surfaces/redirect-csv-import/ --output-path=build/admin-surfaces/redirect-csv-import/",
+		"i18n:pot": "echo 'POT file manually maintained in languages/prc-schema-seo.pot. Update manually or use WP-CLI: wp i18n make-pot . languages/prc-schema-seo.pot --domain=prc-schema-seo'"
 	},
 	"devDependencies": {
-		"@playwright/test": "^1.57.0",
-		"@wordpress/e2e-test-utils-playwright": "^1.36.0",
-		"@wordpress/env": "^10.36.0",
 		"@wordpress/scripts": "^31.1.0"
 	},
 	"dependencies": {
 		"@emotion/styled": "^11.14.1",
-		"@wordpress/icons": "^11.3.0"
+		"@prc/components": "*",
+		"@prc/icons": "*",
+		"@wordpress/icons": "^11.3.0",
+		"qrcode": "^1.5.4"
 	},
 	"license": "GPL-2.0-or-later"
 }

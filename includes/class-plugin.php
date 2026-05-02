@@ -53,11 +53,8 @@ class Plugin {
 	 * Load the required dependencies for this plugin.
 	 */
 	private function load_dependencies() {
-		$composer_autoload = plugin_dir_path( __DIR__ ) . '/vendor/autoload.php';
-		// If the composer autoload file exists and if this plugin is being used off platform or in a test case of the platform, load the autoload file.
-		if ( file_exists( $composer_autoload ) && ( ! defined( 'PRC_PLATFORM' ) || ( defined( 'PRC_PLATFORM' ) && true !== PRC_PLATFORM ) ) ) {
-			require_once $composer_autoload;
-		}
+		// Composer dependencies are loaded by the main plugin file via
+		// Jetpack Autoloader; see prc-schema-seo.php.
 
 		$this->loader = new Loader();
 
@@ -72,7 +69,7 @@ class Plugin {
 		require_once __DIR__ . '/schema/class-json-output.php';
 
 		require_once __DIR__ . '/class-meta-tags.php';
-		require_once __DIR__ . '/class-parsely-meta.php';
+		require_once __DIR__ . '/class-parsely-integration.php';
 		require_once __DIR__ . '/class-template-context.php';
 		require_once __DIR__ . '/class-template-defaults.php';
 		require_once __DIR__ . '/class-cache-invalidator.php';
@@ -106,11 +103,8 @@ class Plugin {
 		// Reading score calculator and WP Ability (no AI dependency).
 		require_once __DIR__ . '/class-reading-score.php';
 
-		// Load the AI experiment and ability classes if the WP AI plugin is available.
-		if ( class_exists( '\WordPress\AI\Abstracts\Abstract_Experiment' ) ) {
-			require_once __DIR__ . '/ai-experiment/class-seo-ai-ability.php';
-			require_once __DIR__ . '/ai-experiment/class-seo-ai-experiment.php';
-		}
+		// QR code attachment — uploads QR images to the media library.
+		require_once __DIR__ . '/class-qr-attachment.php';
 	}
 
 	/**
@@ -132,8 +126,8 @@ class Plugin {
 
 		// Meta tags output (Open Graph, Twitter, robots, canonical)
 		new Meta_Tags( $this->get_loader() );
-		// Parsely meta tags (parsely-title, parsely-link, etc.)
-		new Parsely_Meta( $this->get_loader() );
+		// Parsely: wp-parsely filters + home/term meta output
+		new Parsely_Integration( $this->get_loader() );
 		// Template defaults (site level patterns & overrides)
 		new Template_Defaults( $this->get_loader() );
 		// Cache invalidation events
@@ -164,19 +158,36 @@ class Plugin {
 		// Reading score ability (registered unconditionally — no AI plugin required).
 		new Reading_Score( $this->get_loader() );
 
-		// Register the AI experiment with the WP AI Experiments plugin.
-		if ( class_exists( '\WordPress\AI\Abstracts\Abstract_Experiment' ) ) {
-			add_action(
-				'ai_experiments_register_experiments',
-				function ( $registry ) {
-					$registry->register_experiment( new SEO_AI_Experiment() );
-				}
-			);
-		}
+		// QR code attachment — media library persistence for Short link & QR panel.
+		new QR_Attachment( $this->get_loader() );
+
+		// After WP AI plugins_loaded bootstrap (priority 10); Abstract_Feature is not autoloadable before that.
+		add_action( 'plugins_loaded', array( $this, 'register_wp_ai_features' ), 11 );
 
 		// Use a longer timeout for Google Generative Language API requests.
 		// WordPress default is 5s; AI generation often needs 15–60+ seconds.
 		$this->loader->add_filter( 'http_request_args', $this, 'filter_ai_http_request_timeout', 10, 2 );
+	}
+
+	/**
+	 * Load SEO AI classes and register the feature with the WP AI plugin.
+	 *
+	 * @return void
+	 */
+	public function register_wp_ai_features() {
+		if ( ! class_exists( '\WordPress\AI\Abstracts\Abstract_Feature' ) ) {
+			return;
+		}
+
+		require_once __DIR__ . '/ai-experiment/class-seo-ai-ability.php';
+		require_once __DIR__ . '/ai-experiment/class-seo-ai-experiment.php';
+
+		add_action(
+			'wpai_register_features',
+			function ( $registry ) {
+				$registry->register_feature( new SEO_AI_Experiment() );
+			}
+		);
 	}
 
 	/**

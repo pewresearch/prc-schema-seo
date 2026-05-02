@@ -12,7 +12,8 @@
 
 namespace PRC\Platform\Schema_SEO;
 
-use WordPress\AI\Abstracts\Abstract_Experiment;
+use WordPress\AI\Abstracts\Abstract_Feature;
+use WordPress\AI\Experiments\Experiment_Category;
 
 // If this file is called directly, abort.
 if ( ! defined( 'ABSPATH' ) ) {
@@ -24,20 +25,29 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 1.0.0
  */
-class SEO_AI_Experiment extends Abstract_Experiment {
+class SEO_AI_Experiment extends Abstract_Feature {
 
 	/**
-	 * Loads experiment metadata.
+	 * Feature identifier.
+	 *
+	 * @since 1.0.0
+	 */
+	public static function get_id(): string {
+		return 'seo-ai-suggest';
+	}
+
+	/**
+	 * Loads feature metadata.
 	 *
 	 * @since 1.0.0
 	 *
-	 * @return array{id: string, label: string, description: string} Experiment metadata.
+	 * @return array{label: string, description: string, category: string} Feature metadata.
 	 */
-	protected function load_experiment_metadata(): array {
+	protected function load_metadata(): array {
 		return array(
-			'id'          => 'seo-ai-suggest',
 			'label'       => __( 'SEO AI Suggest', 'prc-schema-seo' ),
 			'description' => __( 'Uses AI to generate optimized SEO titles, meta descriptions, and social sharing text based on post content. Adds "Suggest with AI" buttons to the SEO sidebar panels in the editor.', 'prc-schema-seo' ),
+			'category'    => Experiment_Category::EDITOR,
 		);
 	}
 

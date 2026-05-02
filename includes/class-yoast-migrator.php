@@ -116,8 +116,9 @@ class Yoast_Migrator {
 			return $text;
 		}
 
-		// Remove "%%sep%% Pew Research Center" (with optional spaces).
-		$text = preg_replace( '/\s*%%sep%%\s*Pew Research Center/i', '', $text );
+		// Remove "%%sep%% <site name>" (with optional spaces).
+		$org_name = apply_filters( 'prc_schema_seo_organization_name', 'Pew Research Center' );
+		$text     = preg_replace( '/\s*%%sep%%\s*' . preg_quote( $org_name, '/' ) . '/i', '', $text );
 
 		// Apply token mapping (case-insensitive for Yoast token names).
 		foreach ( self::YOAST_TO_PRC_TOKEN_MAP as $yoast => $prc ) {

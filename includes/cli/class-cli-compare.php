@@ -37,13 +37,6 @@ if ( ! class_exists( 'WPCOM_VIP_CLI_Command' ) ) {
 class CLI_Compare extends WPCOM_VIP_CLI_Command {
 
 	/**
-	 * Production domain to compare against.
-	 *
-	 * @var string
-	 */
-	const PRODUCTION_DOMAIN = 'www.pewresearch.org'; // pragma: allowlist secret
-
-	/**
 	 * User agent to use when fetching production pages (simulates Googlebot).
 	 *
 	 * @var string
@@ -71,6 +64,18 @@ class CLI_Compare extends WPCOM_VIP_CLI_Command {
 		parent::__construct();
 		$this->metadata  = new Metadata( null );
 		$this->generator = new Generator( null );
+	}
+
+	/**
+	 * Default production hostname for SEO compare (override via --production-domain or prc_schema_seo_cli_production_domain).
+	 *
+	 * @return string Hostname without scheme (e.g. www.example.org).
+	 */
+	private function get_production_domain_default(): string {
+		return apply_filters(
+			'prc_schema_seo_cli_production_domain',
+			'www.pewresearch.org' // pragma: allowlist secret — public hostname default for compare, not an API key.
+		);
 	}
 
 	/**
@@ -123,7 +128,7 @@ class CLI_Compare extends WPCOM_VIP_CLI_Command {
 		$post_id           = absint( $args[0] );
 		$format            = Utils\get_flag_value( $assoc_args, 'format', 'table' );
 		$diff_only         = Utils\get_flag_value( $assoc_args, 'diff-only', false );
-		$production_domain = Utils\get_flag_value( $assoc_args, 'production-domain', self::PRODUCTION_DOMAIN );
+		$production_domain = Utils\get_flag_value( $assoc_args, 'production-domain', $this->get_production_domain_default() );
 		$timeout           = absint( Utils\get_flag_value( $assoc_args, 'timeout', 30 ) );
 
 		$post = get_post( $post_id );
@@ -220,7 +225,7 @@ class CLI_Compare extends WPCOM_VIP_CLI_Command {
 	public function compare_batch( $args, $assoc_args ) {
 		$post_type         = Utils\get_flag_value( $assoc_args, 'post-type', 'post' );
 		$limit             = absint( Utils\get_flag_value( $assoc_args, 'limit', 10 ) );
-		$production_domain = Utils\get_flag_value( $assoc_args, 'production-domain', self::PRODUCTION_DOMAIN );
+		$production_domain = Utils\get_flag_value( $assoc_args, 'production-domain', $this->get_production_domain_default() );
 		$format            = Utils\get_flag_value( $assoc_args, 'format', 'table' );
 		$batch_size        = 100;
 

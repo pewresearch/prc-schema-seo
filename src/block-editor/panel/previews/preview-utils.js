@@ -13,18 +13,22 @@ import { decodeEntities } from '@wordpress/html-entities';
  * @param {import('..').PostRecord|undefined} post Current post record from editor store.
  * @returns {{title:string,description:string,ogTitle:string,ogDescription:string,twitterTitle:string,twitterDescription:string,slug:string,images:{facebook:string|null,twitter:string|null}}} Derived preview data.
  */
-export function derivePreviewData( seoData, post ) {
-	const title = decodeEntities( seoData?.title || post?.title?.raw || '' );
+export function derivePreviewData(seoData, post) {
+	const title = decodeEntities(seoData?.title || post?.title?.raw || '');
 	let description = seoData?.description;
-	if ( ! description ) {
+	if (!description) {
 		const rawContent = post?.content?.raw || '';
 		const excerpt = post?.excerpt?.raw || '';
-		description = excerpt || rawContent.replace( /<[^>]+>/g, '' );
+		description = excerpt || rawContent.replace(/<[^>]+>/g, '');
 		// Trim to ~160 chars for Google preview (~30 words)
-		description = description.split( /\s+/ ).slice( 0, 30 ).join( ' ' );
+		description = description.split(/\s+/).slice(0, 30).join(' ');
 	}
-	const ogTitle = decodeEntities( seoData?.og_title || title );
-	const ogDescription = seoData?.og_description || description;
+	const rawPostTitle = post?.title?.raw || '';
+	const postExcerpt = post?.excerpt?.raw || '';
+	const ogTitle = decodeEntities(seoData?.og_title || rawPostTitle);
+	const ogDescription = decodeEntities(
+		seoData?.og_description || postExcerpt || ''
+	);
 
 	// Get social images from art_direction REST field
 	const artDirection = post?.art_direction || {};

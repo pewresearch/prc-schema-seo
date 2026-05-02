@@ -56,7 +56,12 @@ class REST_API {
 					array(
 						'get_callback'    => array( $this, 'get_seo_data' ),
 						'update_callback' => array( $this, 'update_seo_data' ),
-						'schema'          => $this->get_rest_schema(),
+						'schema'          => array_merge(
+							$this->get_rest_schema(),
+							array(
+								'context' => array( 'view', 'edit' ),
+							)
+						),
 					)
 				);
 			}
@@ -66,12 +71,26 @@ class REST_API {
 	/**
 	 * Get SEO data for REST API.
 	 *
-	 * @param array $object Post object.
+	 * In `edit` context returns raw stored values (no post-title/content fallbacks).
+	 * In `view` context returns values merged with fallbacks for public display.
+	 *
+	 * @param array            $object    Post object from REST response.
+	 * @param string           $field_name Registered field name.
+	 * @param \WP_REST_Request $request   REST request.
 	 * @return array SEO data.
 	 */
-	public function get_seo_data( $object ) {
-		$post_id  = $object['id'];
-		$seo_data = $this->seo_metadata->get_seo_data( $post_id );
+	public function get_seo_data( $object, $field_name, $request ) {
+		$post_id = $object['id'];
+		$context = $request instanceof \WP_REST_Request ? $request->get_param( 'context' ) : null;
+		if ( null === $context || '' === $context ) {
+			$context = 'view';
+		}
+
+		if ( 'edit' === $context ) {
+			$seo_data = $this->seo_metadata->get_raw_seo_data( $post_id );
+		} else {
+			$seo_data = $this->seo_metadata->get_seo_data( $post_id );
+		}
 
 		$submitted_at = get_post_meta( $post_id, '_prc_schema_seo_indexnow_submitted_at', true );
 		$seo_data['indexnow_submitted_at'] = $submitted_at ? (int) $submitted_at : null;
@@ -213,23 +232,23 @@ class REST_API {
 			'description' => __( 'SEO metadata for the post.', 'prc-schema-seo' ),
 			'properties'  => array(
 				'title'          => array(
-					'type'        => 'string',
+					'type'        => array( 'string', 'null' ),
 					'description' => __( 'Custom SEO title.', 'prc-schema-seo' ),
 				),
 				'description'    => array(
-					'type'        => 'string',
+					'type'        => array( 'string', 'null' ),
 					'description' => __( 'Meta description.', 'prc-schema-seo' ),
 				),
 				'og_title'       => array(
-					'type'        => 'string',
+					'type'        => array( 'string', 'null' ),
 					'description' => __( 'Open Graph title.', 'prc-schema-seo' ),
 				),
 				'og_description' => array(
-					'type'        => 'string',
+					'type'        => array( 'string', 'null' ),
 					'description' => __( 'Open Graph description.', 'prc-schema-seo' ),
 				),
 				'og_image'       => array(
-					'type'        => 'integer',
+					'type'        => array( 'integer', 'null' ),
 					'description' => __( 'Open Graph image attachment ID.', 'prc-schema-seo' ),
 				),
 				'schema_type'    => array(

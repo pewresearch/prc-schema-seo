@@ -79,6 +79,23 @@ class Metadata {
 	}
 
 	/**
+	 * Get raw SEO data stored for a post without applying fallbacks.
+	 *
+	 * Used by the REST API when context is `edit` so the block editor receives
+	 * null/empty custom fields and can show placeholders instead of resolved defaults.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return array SEO data merged with structural defaults only (no title/description fallbacks).
+	 */
+	public function get_raw_seo_data( int $post_id ): array {
+		$raw = get_post_meta( $post_id, '_prc_seo_data', true );
+		return wp_parse_args(
+			is_array( $raw ) ? $raw : array(),
+			$this->get_default_seo_data( $post_id )
+		);
+	}
+
+	/**
 	 * Get default SEO data structure.
 	 *
 	 * @param int $post_id Post ID.
@@ -152,14 +169,17 @@ class Metadata {
 				: wp_trim_words( wp_strip_all_tags( $post->post_content ), 30 );
 		}
 
-		// Open Graph title fallback.
+		// Open Graph title fallback: post title only (do not inherit SEO title).
 		if ( empty( $seo_data['og_title'] ) ) {
-			$seo_data['og_title'] = $seo_data['title'];
+			$seo_data['og_title'] = get_the_title( $post_id );
 		}
 
-		// Open Graph description fallback.
+		// Open Graph description fallback: excerpt only (empty when no excerpt).
 		if ( empty( $seo_data['og_description'] ) ) {
-			$seo_data['og_description'] = $seo_data['description'];
+			$post_for_og                = get_post( $post_id );
+			$seo_data['og_description'] = ( $post_for_og && ! empty( $post_for_og->post_excerpt ) )
+				? $post_for_og->post_excerpt
+				: '';
 		}
 
 		// Open Graph image fallback.
@@ -227,18 +247,6 @@ class Metadata {
 			$post_id
 		);
 
-		// Update OG title/description if they still match the base values.
-		// This ensures template patterns are applied to OG fields as well.
-		$post_title = get_the_title( $post_id );
-		// Also strip numeric prefix from post title for comparison.
-		$post_title_normalized = preg_replace( '/^\d+\.\s+/', '', $post_title );
-		if ( $seo_data['og_title'] === $post_title || $seo_data['og_title'] === $post_title_normalized ) {
-			$seo_data['og_title'] = $seo_data['title'];
-		}
-		if ( empty( $seo_data['og_description'] ) || $seo_data['og_description'] === $this->get_raw_description( $post_id ) ) {
-			$seo_data['og_description'] = $seo_data['description'];
-		}
-
 		// Decode HTML entities so downstream consumers (meta tag attributes, JSON-LD)
 		// receive plain text rather than HTML-encoded strings.
 		$text_fields = array( 'title', 'description', 'og_title', 'og_description' );
@@ -259,22 +267,6 @@ class Metadata {
 	 */
 	private function decode_html_entities( string $text ): string {
 		return html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
-	}
-
-	/**
-	 * Get raw description for a post (without template patterns).
-	 *
-	 * @param int $post_id Post ID.
-	 * @return string Raw description.
-	 */
-	private function get_raw_description( $post_id ) {
-		$post = get_post( $post_id );
-		if ( ! $post ) {
-			return '';
-		}
-		return ! empty( $post->post_excerpt )
-			? $post->post_excerpt
-			: wp_trim_words( wp_strip_all_tags( $post->post_content ), 30 );
 	}
 
 	/**

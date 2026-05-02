@@ -10,8 +10,6 @@
 
 namespace PRC\Platform\Schema_SEO;
 
-use WordPress\AiClient\AiClient;
-
 // If this file is called directly, abort.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -120,15 +118,24 @@ class SEO_AI_Ability {
 	 * @return string System instruction fragment.
 	 */
 	private static function get_instructions_brand_context(): string {
-		return <<<'INSTRUCTIONS'
-You are an SEO specialist for Pew Research Center, a nonpartisan research organization. Your task is to generate optimized metadata for research content.
+		$org_name = apply_filters( 'prc_schema_seo_organization_name', 'Pew Research Center' );
+
+		$instructions = <<<INSTRUCTIONS
+You are an SEO specialist for {$org_name}, a nonpartisan research organization. Your task is to generate optimized metadata for research content.
 
 BRAND GUIDELINES:
-- Pew Research Center produces objective, nonpartisan research. Never use sensational, clickbait, or opinion language.
+- {$org_name} produces objective, nonpartisan research. Never use sensational, clickbait, or opinion language.
 - Tone should be authoritative, clear, and informative.
 - Use active voice when possible.
-- Do NOT include "Pew Research Center" in the SEO title unless specifically relevant — search engines append the site name automatically.
+- Do NOT include "{$org_name}" in the SEO title unless specifically relevant — search engines append the site name automatically.
 INSTRUCTIONS;
+
+		/**
+		 * Filter the full AI brand context block (system instructions).
+		 *
+		 * @param string $instructions Brand context text.
+		 */
+		return apply_filters( 'prc_schema_seo_ai_brand_context', $instructions );
 	}
 
 	/**
@@ -173,7 +180,13 @@ INSTRUCTIONS;
 	 * @return string System instruction fragment.
 	 */
 	private static function get_instructions_seo_title( ?string $post_type ): string {
-		$casing = self::get_title_casing_parts_for_post_type( $post_type );
+		$casing   = self::get_title_casing_parts_for_post_type( $post_type );
+		$org_name = apply_filters( 'prc_schema_seo_organization_name', 'Pew Research Center' );
+
+		$key_findings_rule = apply_filters(
+			'prc_schema_seo_ai_brand_rules',
+			'- Do not use the phrase "key findings" in any casing unless the piece is clearly a standalone key-findings product. For typical reports and articles, use other framings; at ' . $org_name . ' this phrasing is reserved for specific packaging.'
+		);
 
 		return <<<INSTRUCTIONS
 SEO TITLE GUIDELINES (max 60 characters):
@@ -181,7 +194,7 @@ SEO TITLE GUIDELINES (max 60 characters):
 - Front-load the most important keywords.
 - Be specific and descriptive about what the content covers.
 - Avoid generic titles; each should be unique and specific to the content.
-- Do not use the phrase "key findings" in any casing unless the piece is clearly a standalone key-findings product. For typical reports and articles, use other framings; at Pew Research Center this phrasing is reserved for specific packaging.
+{$key_findings_rule}
 - When the content summary includes publication timing (lines such as DRAFT LAST MODIFIED and SCHEDULED OR PUBLISHED), favor timely framing aligned with that publication window. Avoid making a survey field year or data collection year from the body the centerpiece of the title when it would read as stale relative to when the work is published.
 - Align emphasis with the article primary argument as established by the TITLE and the opening of the CONTENT. Do not center the title on a statistic or example that appears only deep in the body unless the opening already establishes it as central. Do not let a vivid fact dominate if it sidesteps the headline core tension (for example, consensus on one item when the piece is about divisions or debate).
 INSTRUCTIONS;
@@ -367,11 +380,11 @@ INSTRUCTIONS;
 	 * @return string Packet text for LLM, or empty string if unavailable.
 	 */
 	private function get_content_guidelines( $post_id ) {
-		if ( ! function_exists( 'wp_get_content_guidelines_for_post' ) ) {
+		if ( ! function_exists( 'PRC\Platform\AI\Utils\get_content_guidelines_for_post' ) ) {
 			return '';
 		}
 
-		$result = \wp_get_content_guidelines_for_post( $post_id, array( 'task' => 'seo_metadata' ) );
+		$result = \PRC\Platform\AI\Utils\get_content_guidelines_for_post( $post_id, array( 'task' => 'seo_metadata' ) );
 		if ( empty( $result['packet_text'] ) || ! is_string( $result['packet_text'] ) ) {
 			return '';
 		}
@@ -453,8 +466,10 @@ INSTRUCTIONS;
 		$post_type           = get_post_type( $post_id );
 		$system_instructions = self::get_system_instructions( array_keys( $requested_fields ), $content_guidelines, $post_type );
 
+		$org_name = apply_filters( 'prc_schema_seo_organization_name', 'Pew Research Center' );
+
 		$prompt = wp_sprintf(
-			'Generate optimized SEO metadata for this Pew Research Center content.
+			'Generate optimized SEO metadata for this %s content.
 
 %s
 
@@ -462,12 +477,13 @@ Generate the following fields:
 %s
 
 Return ONLY a JSON object with these exact keys and string values: %s',
+			$org_name,
 			$content_summary,
 			implode( "\n", array_map( fn( $k, $v ) => "- {$k}: {$v}", array_keys( $requested_fields ), array_values( $requested_fields ) ) ),
 			wp_json_encode( $output_format )
 		);
 
-		// Build JSON schema for structured output (API requires response_format.type: 'json_schema').
+		// Build JSON schema for structured output (root `type` required — do not wrap in name/strict/schema; see wp_ai as_json_response).
 		$schema_properties = array();
 		foreach ( array_keys( $requested_fields ) as $key ) {
 			$schema_properties[ $key ] = array(
@@ -476,24 +492,36 @@ Return ONLY a JSON object with these exact keys and string values: %s',
 			);
 		}
 		$json_schema = array(
-			'name'   => 'seo_suggestions',
-			'strict' => true,
-			'schema' => array(
-				'type'                 => 'object',
-				'properties'           => $schema_properties,
-				'required'             => array_keys( $requested_fields ),
-				'additionalProperties' => false,
-			),
+			'type'                 => 'object',
+			'properties'           => $schema_properties,
+			'required'             => array_keys( $requested_fields ),
+			'additionalProperties' => false,
 		);
 
 		try {
-			$response = AiClient::prompt( $prompt )
-				->usingSystemInstruction( $system_instructions )
-				->usingTemperature( 0.4 )
-				->asJsonResponse( $json_schema )
-				->generateText();
+			$builder = wp_ai_client_prompt( $prompt );
+			if ( is_wp_error( $builder ) ) {
+				return array(
+					'error'       => $builder->get_error_message(),
+					'suggestions' => new \stdClass(),
+				);
+			}
 
-			$suggestions = json_decode( $response, true );
+			$response = $builder
+				->using_system_instruction( $system_instructions )
+				->using_temperature( 0.4 )
+				->using_model_preference( ...\WordPress\AI\get_preferred_models_for_text_generation() )
+				->as_json_response( $json_schema )
+				->generate_text();
+
+			if ( is_wp_error( $response ) ) {
+				return array(
+					'error'       => $response->get_error_message(),
+					'suggestions' => new \stdClass(),
+				);
+			}
+
+			$suggestions = json_decode( (string) $response, true );
 
 			if ( json_last_error() !== JSON_ERROR_NONE || ! is_array( $suggestions ) ) {
 				return array(

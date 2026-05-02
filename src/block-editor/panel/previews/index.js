@@ -36,10 +36,15 @@ import { derivePreviewData } from './preview-utils';
  * Modal dialog with tabbed platform previews that visually match real social networks.
  *
  * @param {{seoData: import('..').SEOData, post: import('..').PostRecord, onClose: Function}} props Props.
- * @return {JSX.Element} Modal with platform tabs.
+ * @return {import('react').ReactElement} Modal with platform tabs.
  */
 export default function PreviewsModal({ seoData, post, onClose }) {
 	const siteUrl = window?.wp?.siteUrl || window.location.origin;
+	const branding = window?.PRCSchemaSEO?.branding ?? {};
+	const siteName = branding.siteName || window?.wp?.siteTitle || 'Site';
+	const displayName = branding.displayName || siteName;
+	const twitterUsername = branding.twitterUsername ?? '';
+	const blueskyHandle = branding.blueskyHandle ?? '';
 	const data = derivePreviewData(seoData, post);
 	const previewUrl = seoData?.canonical_url || post?.link || siteUrl;
 
@@ -193,7 +198,7 @@ export default function PreviewsModal({ seoData, post, onClose }) {
 								description={data.description}
 								url={previewUrl}
 								image={data.ogImage}
-								siteName="Pew Research Center"
+								siteName={siteName}
 							/>
 						);
 					if (tab.name === 'facebook')
@@ -203,7 +208,7 @@ export default function PreviewsModal({ seoData, post, onClose }) {
 								description={data.ogDescription}
 								url={previewUrl}
 								image={data.ogImage}
-								displayName="Pew Research Center"
+								displayName={displayName}
 								postText="Lorem ipsum dolor sit amet, consectetur adipiscing elit."
 								timestamp="10m"
 								verified={true}
@@ -219,8 +224,8 @@ export default function PreviewsModal({ seoData, post, onClose }) {
 								description={data.ogDescription}
 								url={previewUrl}
 								image={data.ogImage}
-								siteName="Pew Research Center"
-								displayName="Pew Research Center"
+								siteName={siteName}
+								displayName={displayName}
 								followers="100,000 followers"
 								postText="Lorem ipsum dolor sit amet, consectetur adipiscing elit."
 								timestamp="10m"
@@ -237,9 +242,9 @@ export default function PreviewsModal({ seoData, post, onClose }) {
 								description={data.ogDescription}
 								url={previewUrl}
 								image={data.ogImage}
-								siteName="Pew Research Center"
-								displayName="Pew Research Center"
-								username="pewresearch"
+								siteName={siteName}
+								displayName={displayName}
+								username={twitterUsername}
 								tweetText="Lorem ipsum dolor sit amet, consectetur adipiscing elit."
 								verified={true}
 								timestamp="10m"
@@ -254,7 +259,7 @@ export default function PreviewsModal({ seoData, post, onClose }) {
 								description={data.ogDescription}
 								url={previewUrl}
 								image={data.ogImage}
-								siteName="Pew Research Center"
+								siteName={siteName}
 							/>
 						);
 					if (tab.name === 'bluesky')
@@ -264,9 +269,9 @@ export default function PreviewsModal({ seoData, post, onClose }) {
 								description={data.ogDescription}
 								url={previewUrl}
 								image={data.ogImage}
-								siteName="Pew Research Center"
-								displayName="Pew Research Center"
-								handle="pewresearch.org"
+								siteName={siteName}
+								displayName={displayName}
+								handle={blueskyHandle}
 								postText="Lorem ipsum dolor sit amet, consectetur adipiscing elit."
 								verified={true}
 								timestamp="10m"
@@ -284,8 +289,8 @@ export default function PreviewsModal({ seoData, post, onClose }) {
 								description={data.ogDescription}
 								url={previewUrl}
 								image={data.ogImage}
-								siteName="Pew Research Center"
-								displayName="Pew Research Center"
+								siteName={siteName}
+								displayName={displayName}
 								messageText="Lorem ipsum dolor sit amet, consectetur adipiscing elit."
 								timestamp="10m"
 								readingTime="5 minutes"
@@ -299,7 +304,7 @@ export default function PreviewsModal({ seoData, post, onClose }) {
 								description={data.ogDescription}
 								url={previewUrl}
 								image={data.ogImage}
-								siteName="Pew Research Center"
+								siteName={siteName}
 							/>
 						);
 					if (tab.name === 'teams')
@@ -310,7 +315,7 @@ export default function PreviewsModal({ seoData, post, onClose }) {
 								url={previewUrl}
 								image={data.ogImage}
 								favicon={data.ogImage}
-								siteName="Pew Research Center"
+								siteName={siteName}
 							/>
 						);
 					return null;

@@ -64,9 +64,9 @@ class CLI_Migration extends WPCOM_VIP_CLI_Command {
 	private $meta_tags = null;
 
 	/**
-	 * Parsely_Meta instance for Parsely cache warming. Lazy-initialized.
+	 * Parsely_Integration instance for term/home Parsely cache warming. Lazy-initialized.
 	 *
-	 * @var Parsely_Meta|null
+	 * @var Parsely_Integration|null
 	 */
 	private $parsely = null;
 
@@ -79,7 +79,7 @@ class CLI_Migration extends WPCOM_VIP_CLI_Command {
 	}
 
 	/**
-	 * Lazy-initialize cache services (Generator, Meta_Tags, Parsely_Meta).
+	 * Lazy-initialize cache services (Generator, Meta_Tags, Parsely_Integration for term cache).
 	 *
 	 * @return void
 	 */
@@ -90,7 +90,7 @@ class CLI_Migration extends WPCOM_VIP_CLI_Command {
 		$loader          = new Loader();
 		$this->generator = new Generator( $loader );
 		$this->meta_tags = new Meta_Tags( $loader );
-		$this->parsely   = new Parsely_Meta( $loader );
+		$this->parsely   = new Parsely_Integration( $loader );
 	}
 
 	/**
@@ -103,7 +103,6 @@ class CLI_Migration extends WPCOM_VIP_CLI_Command {
 		$this->init_cache_services();
 		$this->generator->generate_schema( $post_id );
 		$this->meta_tags->warm_post_cache( $post_id );
-		$this->parsely->warm_post_cache( $post_id );
 	}
 
 	/**

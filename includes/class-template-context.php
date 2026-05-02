@@ -10,8 +10,6 @@
 
 namespace PRC\Platform\Schema_SEO;
 
-use function PRC\Platform\is_publications;
-
 /**
  * Template_Context
  * Utility class for identifying template contexts and generating storage keys.
@@ -166,7 +164,7 @@ class Template_Context {
 		// Blog page (posts page) - handles both:
 		// 1. "Your latest posts" as front page (is_front_page() && is_home())
 		// 2. Separate blog page when static front page is set (is_home() && !is_front_page())
-		if ( \PRC\Platform\is_publications() ) {
+		if ( \PRC\BlockUtils\is_publications() ) {
 			// do_action('qm/debug', 'is_publications()');
 			return array(
 				'type'      => self::CONTEXT_BLOG,

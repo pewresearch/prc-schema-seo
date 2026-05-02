@@ -47,6 +47,25 @@ This document describes the data flow and rendering pipeline for the `prc-schema
                               └─────────────────────┘
 ```
 
+### D. Parse.ly (`wp-parsely`) integration
+
+Parse.ly analytics metadata is supplied by the **`wp-parsely`** plugin. `Parsely_Integration` bridges PRC SEO data into that plugin’s filters:
+
+```
+Singular (post types with prc-schema-seo support)
+    → wp_parsely_metadata / wp_parsely_permalink
+    → Merge headline, canonical url, thumbnail, keywords, articleSection, authors, dates
+
+Front page + term archives (category / tag / tax)
+    → wp_parsely_should_insert_metadata = false (avoid duplicate / wrong context)
+    → wp_head @ priority 3: explicit parsely-title / parsely-link / parsely-type meta (cached)
+
+Local dev
+    → wpvip_parsely_load_mu enables VIP’s Parse.ly MU plugin when environment type is "local"
+```
+
+Implementation: `includes/class-parsely-integration.php`. Output format on singular URLs (JSON-LD vs meta tags) is controlled by **Parse.ly plugin settings**, not by `prc-schema-seo`.
+
 ## Component Responsibilities
 
 ### 1. Plugin Bootstrap (`class-plugin.php`)
@@ -64,6 +83,7 @@ This document describes the data flow and rendering pipeline for the `prc-schema
 │  │  ├── Meta_Tags        → OG/Twitter/robots meta output       │ │
 │  │  ├── Template_Defaults→ Per-template SEO patterns           │ │
 │  │  ├── Cache_Invalidator→ Cache lifecycle management          │ │
+│  │  ├── Parsely_Integration → wp-parsely filters & archive meta │ │
 │  │  ├── Editor_UI        → Block editor panel                  │ │
 │  │  └── Taxonomy_UI      → Term edit screen UI                 │ │
 │  └─────────────────────────────────────────────────────────────┘ │

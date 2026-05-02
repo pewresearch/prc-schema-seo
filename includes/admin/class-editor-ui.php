@@ -70,6 +70,17 @@ class Editor_UI {
 					'primaryTermTaxonomies' => $this->get_primary_term_taxonomies(),
 					'indexnowEnabled'       => defined( 'PRC_PLATFORM_INDEXNOW_KEY' ) && ! empty( PRC_PLATFORM_INDEXNOW_KEY ),
 					'gscEnabled'            => Search_Console::is_configured(),
+					'homeUrl'               => home_url(),
+					'symbolSvgUrl'          => $this->get_qr_logo_url(),
+					'branding'              => apply_filters(
+						'prc_schema_seo_branding',
+						array(
+							'siteName'        => get_bloginfo( 'name' ),
+							'displayName'     => 'Pew Research Center',
+							'twitterUsername' => 'pewresearch',
+							'blueskyHandle'   => 'pewresearch.org', // pragma: allowlist secret — public Bluesky handle default for previews, not an API key.
+						)
+					),
 				)
 			);
 		}
@@ -126,9 +137,38 @@ class Editor_UI {
 				$post_types,
 				function ( $pt ) {
 					return post_type_supports( $pt, 'prc-schema-seo' );
-				} 
-			) 
+				}
+			)
 		);
+	}
+
+	/**
+	 * Resolve the logo URL for the QR code center overlay.
+	 *
+	 * Priority: site icon > custom logo. Empty string when neither is set.
+	 * Filterable via `prc_schema_seo_qr_logo_url`.
+	 *
+	 * @return string Absolute URL to a logo image, or empty string for QR without center logo.
+	 */
+	private function get_qr_logo_url(): string {
+		$url = '';
+
+		$site_icon = get_site_icon_url( 512 );
+		if ( $site_icon ) {
+			$url = $site_icon;
+		}
+
+		if ( ! $url ) {
+			$custom_logo_id = get_theme_mod( 'custom_logo' );
+			if ( $custom_logo_id ) {
+				$logo_url = wp_get_attachment_image_url( (int) $custom_logo_id, 'medium' );
+				if ( $logo_url ) {
+					$url = $logo_url;
+				}
+			}
+		}
+
+		return apply_filters( 'prc_schema_seo_qr_logo_url', $url );
 	}
 
 	/**

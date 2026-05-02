@@ -74,8 +74,10 @@ export default function AISuggestSEO({ fields, label, update }) {
 			{!result && !isLoading && (
 				<AISuggestButton
 					label={label || __('Suggest SEO', 'prc-schema-seo')}
+					text={label || __('Suggest SEO', 'prc-schema-seo')}
 					onClick={handleFetch}
 					isLoading={isLoading}
+					minWords={150}
 				/>
 			)}
 

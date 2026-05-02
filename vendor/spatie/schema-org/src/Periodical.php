@@ -15,7 +15,7 @@ use Spatie\SchemaOrg\Contracts\ThingContract;
  * magazine, scholarly journal, or newspaper.
  *
  * See also [blog
- * post](http://blog.schema.org/2014/09/schemaorg-support-for-bibliographic_2.html).
+ * post](https://blog.schema.org/2014/09/02/schema-org-support-for-bibliographic-relationships-and-periodicals/).
  *
  * @see https://schema.org/Periodical
  *
@@ -1568,7 +1568,7 @@ class Periodical extends BaseType implements PeriodicalContract, CreativeWorkCon
     }
 
     /**
-     * The publisher of the creative work.
+     * The publisher of the article in question.
      *
      * @param \Spatie\SchemaOrg\Contracts\OrganizationContract|\Spatie\SchemaOrg\Contracts\OrganizationContract[]|\Spatie\SchemaOrg\Contracts\PersonContract|\Spatie\SchemaOrg\Contracts\PersonContract[] $publisher
      *
@@ -2123,6 +2123,21 @@ class Periodical extends BaseType implements PeriodicalContract, CreativeWorkCon
     public function video($video)
     {
         return $this->setProperty('video', $video);
+    }
+
+    /**
+     * The number of words in the text of the CreativeWork such as an Article,
+     * Book, etc.
+     *
+     * @param int|int[] $wordCount
+     *
+     * @return static
+     *
+     * @see https://schema.org/wordCount
+     */
+    public function wordCount($wordCount)
+    {
+        return $this->setProperty('wordCount', $wordCount);
     }
 
     /**

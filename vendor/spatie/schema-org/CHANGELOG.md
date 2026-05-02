@@ -2,16 +2,43 @@
 
 All Notable changes to `schema-org` will be documented in this file.
 
+## 4.0.0 - 2026-02-09
+
+### What's Changed
+
+- Upgrade schema.org definitions to v29.3 (#238 by @Soean)
+- Drop PHP 8.0 and 8.1 support (now requires PHP ^8.2)
+- Add PHP 8.5 support
+- Add `JSON_UNESCAPED_SLASHES` to `toScript()` output
+- Upgrade dev dependencies (Pest 2/3, PHPUnit 10, Symfony 6/7)
+- Upgrade phpunit.xml.dist to PHPUnit 10 format
+- Add return type declarations to generator commands
+
+## 3.23.1 - 2025-01-31
+
+### What's Changed
+
+* Unescape slashes in output by @patrickomeara in https://github.com/spatie/schema-org/pull/223
+* Update graham-campbell/analyzer by @freekmurze in https://github.com/spatie/schema-org/pull/224
+* Upgrade to schema.org v28.1 by @Soean in https://github.com/spatie/schema-org/pull/222
+
+### New Contributors
+
+* @patrickomeara made their first contribution in https://github.com/spatie/schema-org/pull/223
+* @Soean made their first contribution in https://github.com/spatie/schema-org/pull/222
+
+**Full Changelog**: https://github.com/spatie/schema-org/compare/3.23.0...3.23.1
+
 ## 3.23.0 - 2024-01-11
 
 ### What's Changed
 
-- Update generator to use schema v24 by @indyjonesnl in https://github.com/spatie/schema-org/pull/201
-- Schema 24 by @Gummibeer in https://github.com/spatie/schema-org/pull/213
+* Update generator to use schema v24 by @indyjonesnl in https://github.com/spatie/schema-org/pull/201
+* Schema 24 by @Gummibeer in https://github.com/spatie/schema-org/pull/213
 
 ### New Contributors
 
-- @indyjonesnl made their first contribution in https://github.com/spatie/schema-org/pull/201
+* @indyjonesnl made their first contribution in https://github.com/spatie/schema-org/pull/201
 
 **Full Changelog**: https://github.com/spatie/schema-org/compare/3.22.0...3.23.0
 
@@ -19,7 +46,7 @@ All Notable changes to `schema-org` will be documented in this file.
 
 ### What's Changed
 
-- upgrade to schema.org v23 by @Gummibeer in https://github.com/spatie/schema-org/pull/212
+* upgrade to schema.org v23 by @Gummibeer in https://github.com/spatie/schema-org/pull/212
 
 **Full Changelog**: https://github.com/spatie/schema-org/compare/3.21.0...3.22.0
 
@@ -27,7 +54,7 @@ All Notable changes to `schema-org` will be documented in this file.
 
 ### What's Changed
 
-- upgrade to schema.org v22 by @Gummibeer in https://github.com/spatie/schema-org/pull/211
+* upgrade to schema.org v22 by @Gummibeer in https://github.com/spatie/schema-org/pull/211
 
 **Full Changelog**: https://github.com/spatie/schema-org/compare/3.20.0...3.21.0
 
@@ -35,7 +62,7 @@ All Notable changes to `schema-org` will be documented in this file.
 
 ### What's Changed
 
-- upgrade to schema.org v21 by @Gummibeer in https://github.com/spatie/schema-org/pull/210
+* upgrade to schema.org v21 by @Gummibeer in https://github.com/spatie/schema-org/pull/210
 
 **Full Changelog**: https://github.com/spatie/schema-org/compare/3.19.0...3.20.0
 
@@ -43,7 +70,7 @@ All Notable changes to `schema-org` will be documented in this file.
 
 ### What's Changed
 
-- upgrade to schema.org v20 by @Gummibeer in https://github.com/spatie/schema-org/pull/209
+* upgrade to schema.org v20 by @Gummibeer in https://github.com/spatie/schema-org/pull/209
 
 **Full Changelog**: https://github.com/spatie/schema-org/compare/3.18.0...3.19.0
 
@@ -51,7 +78,7 @@ All Notable changes to `schema-org` will be documented in this file.
 
 ### What's Changed
 
-- upgrade to schema.org v19 by @Gummibeer in https://github.com/spatie/schema-org/pull/208
+* upgrade to schema.org v19 by @Gummibeer in https://github.com/spatie/schema-org/pull/208
 
 **Full Changelog**: https://github.com/spatie/schema-org/compare/3.17.0...3.18.0
 
@@ -59,7 +86,7 @@ All Notable changes to `schema-org` will be documented in this file.
 
 ### What's Changed
 
-- upgrade to schema.org v18 by @Gummibeer in https://github.com/spatie/schema-org/pull/207
+* upgrade to schema.org v18 by @Gummibeer in https://github.com/spatie/schema-org/pull/207
 
 **Full Changelog**: https://github.com/spatie/schema-org/compare/3.16.0...3.17.0
 
@@ -67,7 +94,7 @@ All Notable changes to `schema-org` will be documented in this file.
 
 ### What's Changed
 
-- upgrade to schema.org v17 by @Gummibeer in https://github.com/spatie/schema-org/pull/206
+* upgrade to schema.org v17 by @Gummibeer in https://github.com/spatie/schema-org/pull/206
 
 **Full Changelog**: https://github.com/spatie/schema-org/compare/3.15.0...3.16.0
 
@@ -75,8 +102,8 @@ All Notable changes to `schema-org` will be documented in this file.
 
 ### What's Changed
 
-- upgrade to schema.org v16 by @Gummibeer in https://github.com/spatie/schema-org/pull/204
-- add support/test-run for php8.3 by @Gummibeer in https://github.com/spatie/schema-org/pull/205
+* upgrade to schema.org v16 by @Gummibeer in https://github.com/spatie/schema-org/pull/204
+* add support/test-run for php8.3 by @Gummibeer in https://github.com/spatie/schema-org/pull/205
 
 **Full Changelog**: https://github.com/spatie/schema-org/compare/3.14.0...3.15.0
 

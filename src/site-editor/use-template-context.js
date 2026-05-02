@@ -3,7 +3,7 @@
  */
 import { __, sprintf } from '@wordpress/i18n';
 import { useSelect } from '@wordpress/data';
-import { useState, useEffect } from '@wordpress/element';
+import { useMemo } from '@wordpress/element';
 
 /**
  * parseTemplateSlug
@@ -208,24 +208,16 @@ export default function useTemplateContext() {
 		};
 	}, []);
 
-	const [context, setContext] = useState(null);
-	const [isLoading, setIsLoading] = useState(true);
-
-	useEffect(() => {
+	const { context, isLoading } = useMemo(() => {
 		if (!currentTemplateId || currentPostType !== 'wp_template') {
-			setContext(null);
-			setIsLoading(false);
-			return;
+			return { context: null, isLoading: false };
 		}
 
-		// Check if currentTemplateId is a string and its not empty
 		if (
 			typeof currentTemplateId !== 'string' ||
 			currentTemplateId.length === 0
 		) {
-			setContext(null);
-			setIsLoading(false);
-			return;
+			return { context: null, isLoading: false };
 		}
 
 		// Parse template ID to determine context.
@@ -233,9 +225,10 @@ export default function useTemplateContext() {
 		const parts = currentTemplateId.split('//');
 		const slug = parts[1] || currentTemplateId;
 
-		const detectedContext = parseTemplateSlug(slug);
-		setContext(detectedContext);
-		setIsLoading(false);
+		return {
+			context: parseTemplateSlug(slug),
+			isLoading: false,
+		};
 	}, [currentTemplateId, currentPostType]);
 
 	return { context, isLoading };

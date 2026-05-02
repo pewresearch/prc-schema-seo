@@ -15,8 +15,15 @@ import {
 	Button,
 	Spinner,
 	ExternalLink,
+	__experimentalVStack as VStack,
+	withFilters,
 } from '@wordpress/components';
 import { decodeEntities } from '@wordpress/html-entities';
+
+/**
+ * External Dependencies
+ */
+import { CharacterCounter } from '@prc/components';
 
 /**
  * Internal Dependencies
@@ -308,9 +315,37 @@ const schemaTypes = (
  * @param  root0.update
  * @return {JSX.Element|null} Editor panel fields or null if post type is not enabled.
  */
-export default function Search({ seoData, update }) {
+const HOOK_NAME = 'prc-platform.seo.ui.search';
+
+/**
+ * FilterableSearch
+ * Wrapper that applies filters so other plugins can append additional
+ * search-related panels after the Search and Search Advanced PanelBodies.
+ * Use `addFilter('prc-platform.seo.ui.search', ...)` to extend.
+ */
+const FilterableSearch = withFilters(HOOK_NAME)((props) => (
+	<Search {...props} />
+));
+
+export default FilterableSearch;
+
+function Search({ seoData, update }) {
 	const postId = useSelect(
 		(select) => select('core/editor').getCurrentPostId(),
+		[]
+	);
+
+	const excerpt = useSelect(
+		(select) =>
+			select('core/editor').getEditedPostAttribute('excerpt') || '',
+		[]
+	);
+
+	const postTitle = useSelect(
+		(select) =>
+			decodeEntities(
+				select('core/editor').getEditedPostAttribute('title') || ''
+			),
 		[]
 	);
 
@@ -335,38 +370,55 @@ export default function Search({ seoData, update }) {
 				{AISuggestSEO && (
 					<AISuggestSEO
 						fields={['title', 'description']}
-						label={__(
-							'Suggest Title & Description',
-							'prc-schema-seo'
-						)}
+						label={__('Suggest SEO Metadata', 'prc-schema-seo')}
 						update={update}
 						seoData={seoData}
 					/>
 				)}
-				<div className="prc-schema-seo-panel-fields">
+				<VStack spacing="2">
 					<TextControl
 						label={__('SEO Title', 'prc-schema-seo')}
+						placeholder={postTitle}
 						value={decodeEntities((seoData && seoData.title) || '')}
 						onChange={(v) => update('title', v.slice(0, MAX_TITLE))}
-						help={`${decodeEntities((seoData && seoData.title) || '').length} / ${MAX_TITLE}`}
+						help={
+							<CharacterCounter
+								current={
+									decodeEntities(
+										(seoData && seoData.title) || ''
+									).length
+								}
+								limit={MAX_TITLE}
+							/>
+						}
 					/>
 					<TextareaControl
 						label={__('SEO Description', 'prc-schema-seo')}
+						placeholder={excerpt}
 						value={decodeEntities(
 							(seoData && seoData.description) || ''
 						)}
 						onChange={(v) =>
 							update('description', v.slice(0, MAX_DESC))
 						}
-						help={`${decodeEntities((seoData && seoData.description) || '').length} / ${MAX_DESC}`}
+						help={
+							<CharacterCounter
+								current={
+									decodeEntities(
+										(seoData && seoData.description) || ''
+									).length
+								}
+								limit={MAX_DESC}
+							/>
+						}
 					/>
-				</div>
+				</VStack>
 			</PanelBody>
 			<PanelBody
 				title={__('Search Advanced', 'prc-schema-seo')}
 				initialOpen={false}
 			>
-				<div>
+				<VStack>
 					<SelectControl
 						label={__('Schema Type', 'prc-schema-seo')}
 						value={decodeEntities(
@@ -408,7 +460,7 @@ export default function Search({ seoData, update }) {
 						type="url"
 						placeholder="https://example.com/preferred-url"
 					/>
-				</div>
+				</VStack>
 			</PanelBody>
 		</>
 	);

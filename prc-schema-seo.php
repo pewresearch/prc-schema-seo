@@ -11,7 +11,7 @@
  * Plugin Name:       PRC Schema - SEO
  * Plugin URI:        https://github.com/pewresearch/prc-schema-seo
  * Description:       A schema.org SEO plugin for PRC Platform.
- * Version:           1.0.0
+ * Version:           1.1.0
  * Requires at least: 6.8
  * Requires PHP:      8.2
  * Author:            Seth Rubenstein
@@ -19,7 +19,7 @@
  * License:           GPL-2.0+
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
  * Text Domain:       prc-schema-seo
- * Requires Plugins:  prc-platform-core
+ * Requires Plugins:  prc-scripts, prc-post-publish-pipeline
  */
 
 namespace PRC\Platform\Schema_SEO;
@@ -31,6 +31,19 @@ if ( ! defined( 'WPINC' ) ) {
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+
+if ( ! defined( 'DEFAULT_TECHNICAL_CONTACT' ) ) {
+	define( 'DEFAULT_TECHNICAL_CONTACT', 'webdev@pewresearch.org' );
+}
+
+// Load the Jetpack Autoloader so runtime version-selection can pick the
+// highest version across all plugins that ship the same library dep
+// (see .cursor/plans/composer-shape-b-migration_0e4e9991.plan.md).
+$prc_schema_seo_autoloader = __DIR__ . '/vendor/autoload_packages.php';
+if ( file_exists( $prc_schema_seo_autoloader ) ) {
+	require_once $prc_schema_seo_autoloader;
+}
+unset( $prc_schema_seo_autoloader );
 
 define( 'PRC_SCHEMA_SEO_FILE', __FILE__ );
 define( 'PRC_SCHEMA_SEO_DIR', __DIR__ );

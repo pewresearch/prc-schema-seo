@@ -10,6 +10,38 @@ Provides schema generation, SEO meta tags, primary term management, preview pane
 - Editor previews (search, social, chat, internal)
 - Site Editor sidebar for global pattern configuration and noindex lists
 - Extensible pattern token engine
+- Parse.ly metadata via the official `wp-parsely` plugin (see below)
+
+## Parse.ly (`wp-parsely`)
+
+The platform uses Automattic’s [wp-parsely](https://github.com/Parsely/wp-parsely) on VIP. `prc-schema-seo` implements `Parsely_Integration` (`includes/class-parsely-integration.php`) so Pew SEO data (canonical URL, titles, authors, sections, keywords) is merged into Parse.ly’s metadata pipeline instead of maintaining a parallel tag system.
+
+### How it works
+
+| Context | Behavior |
+| ------- | -------- |
+| Singular posts/pages (supported post types) | `wp_parsely_metadata` and `wp_parsely_permalink` enrich Parse.ly’s array with PRC SEO fields from `Metadata::get_seo_data()` / `resolve_for_display()`. Whether the plugin emits JSON-LD or repeated `<meta name="parsely-*">` tags follows **Parse.ly’s own settings** in WP Admin (`meta_type` and related options). |
+| Static front page, category/tag/custom tax archives | `wp-parsely` does not render metadata here (it targets singular content with `global $post`). PRC disables default head insertion on those views and prints **`parsely-title` / `parsely-link` / `parsely-type`** meta tags from `Parsely_Integration` at `wp_head` priority 3. |
+| RLS template post type | Default `wp-parsely` head output is disabled for this type; PRC does not merge Parse.ly metadata for it. |
+
+### WordPress hooks used
+
+| Hook | Purpose |
+| ---- | ------- |
+| `wpvip_parsely_load_mu` | On `local` environment, return `true` so VIP’s Parse.ly MU integration loads (matches production behavior in dev). |
+| `wp_parsely_should_insert_metadata` | Return `false` where PRC prints its own tags or where `wp-parsely` cannot target the page (front page, term archives, RLS template singular). |
+| `wp_parsely_metadata` | Map PRC fields into Parse.ly’s metadata array (headline, `url`, thumbnail, `keywords`, `articleSection`, author/creator, dates). `dateModified` uses the post modified date. |
+| `wp_parsely_permalink` | Align Parse.ly link meta with the PRC canonical URL (`prc_schema_seo_canonical_url` filter applies). |
+
+### Caching
+
+Home and term Parse.ly HTML fragments are cached with `wp_cache_*` in group `prc_schema_seo_parsely_03112026`, TTL **1 hour**, keys such as `parsely_tags_home` and `parsely_tags_term_{term_id}`. The WP-CLI migration command can warm term cache via the same `Parsely_Integration::warm_term_cache()` path.
+
+### Operational notes
+
+- **Canonical**: Changes that affect `prc_schema_seo_canonical_url` or stored SEO data affect Parse.ly link and `url` fields after cache invalidation or TTL expiry.
+- **Keywords / section**: Built from category, formats, research-teams, and internal markers (`get_parsely_tag_tokens`, `get_parsely_section`); empty section is omitted so `articleSection` is not sent when there is no primary category name.
+- **Troubleshooting**: If Parse.ly tags are missing locally, confirm environment type is `local` (for MU loader), that `wp-parsely` is active, and that the current template is not one where insertion is intentionally disabled (see table above).
 
 ## Pattern Tokens
 

@@ -2,13 +2,31 @@
 	"name": "prc/schema-seo",
 	"description": "PRC Schema SEO Plugin",
 	"type": "wordpress-plugin",
+	"license": "GPL-2.0-or-later",
 	"require": {
 		"php": ">=8.2",
-		"spatie/schema-org": "^3.14"
+		"automattic/jetpack-autoloader": "^5.0",
+		"prc/block-utils": "^1.1",
+		"spatie/schema-org": "^4.0"
 	},
 	"autoload": {
 		"psr-4": {
 			"PRC\\Platform\\Schema_SEO\\": "includes/"
+		}
+	},
+	"repositories": [
+		{
+			"type": "vcs",
+			"url": "https://github.com/pewresearch/prc-block-utils"
+		}
+	],
+	"config": {
+		"allow-plugins": {
+			"composer/installers": true,
+			"automattic/jetpack-autoloader": true
+		},
+		"platform": {
+			"php": "8.4.0"
 		}
 	}
 }

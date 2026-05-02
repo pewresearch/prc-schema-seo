@@ -9,6 +9,7 @@ import { useEntityProp } from '@wordpress/core-data';
  */
 import Preview from './preview';
 import Search from './search';
+import ShortlinkQr from './shortlink-qr';
 import Social from './social';
 
 /**
@@ -84,6 +85,7 @@ export default function Panel() {
 		<>
 			<Search seoData={seoData} update={update} />
 			<Social seoData={seoData} update={update} />
+			<ShortlinkQr />
 			<Preview seoData={seoData} post={post} />
 		</>
 	);

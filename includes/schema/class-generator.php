@@ -79,6 +79,13 @@ class Generator {
 	protected $seo_metadata;
 
 	/**
+	 * Cached organization config from prc_schema_seo_organization_config filter.
+	 *
+	 * @var array<string, mixed>|null
+	 */
+	private ?array $org_config_cache = null;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param Loader $loader The loader instance.
@@ -88,14 +95,46 @@ class Generator {
 		$this->seo_metadata = new Metadata( $loader );
 	}
 
+	/**
+	 * Organization identity for schema.org (publisher, WebSite name alignment, etc.).
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function get_org_config(): array {
+		if ( null === $this->org_config_cache ) {
+			$this->org_config_cache = apply_filters(
+				'prc_schema_seo_organization_config',
+				array(
+					'name'                   => 'Pew Research Center',
+					'url'                    => 'https://www.pewresearch.org', // pragma: allowlist secret — public site URL default, not an API key.
+					'alternate_names'        => array( 'Pew Research', 'PRC' ),
+					'slogan'                 => 'Numbers, Facts and Trends Shaping Your World',
+					'founding_date'          => '2004-07-01',
+					'nonprofit_status'       => 'https://schema.org/Nonprofit501c3',
+					'publishing_principles'  => 'https://www.pewresearch.org/about/our-mission/', // pragma: allowlist secret — public URL default.
+				)
+			);
+		}
+
+		return $this->org_config_cache;
+	}
+
 	public function get_same_as_array() {
-		return array(
-			'https://x.com/pewresearch',
-			'https://www.facebook.com/pewresearch',
-			'https://www.threads.com/@pewresearch',
-			'https://www.instagram.com/pewresearch',
-			'https://www.youtube.com/user/PewResearchCenter',
-			'https://www.linkedin.com/company/pew-research-center',
+		/**
+		 * Filter sameAs social profile URLs for Organization / WebSite schema.
+		 *
+		 * @param array<int, string> $urls Social profile URLs.
+		 */
+		return apply_filters(
+			'prc_schema_seo_same_as',
+			array(
+				'https://x.com/pewresearch',
+				'https://www.facebook.com/pewresearch',
+				'https://www.threads.com/@pewresearch',
+				'https://www.instagram.com/pewresearch',
+				'https://www.youtube.com/user/PewResearchCenter',
+				'https://www.linkedin.com/company/pew-research-center',
+			)
 		);
 	}
 
@@ -107,12 +146,28 @@ class Generator {
 	 * @return PostalAddress PostalAddress schema instance.
 	 */
 	private function get_organization_address() {
+		/**
+		 * Filter postal address fields for organization schema.
+		 *
+		 * @param array<string, string> $address Keys: streetAddress, addressLocality, addressRegion, postalCode, addressCountry.
+		 */
+		$address = apply_filters(
+			'prc_schema_seo_organization_address',
+			array(
+				'streetAddress'   => '901 E St NW',
+				'addressLocality' => 'Washington',
+				'addressRegion'   => 'DC',
+				'postalCode'      => '20004',
+				'addressCountry'  => 'US',
+			)
+		);
+
 		return Schema::postalAddress()
-			->streetAddress( '901 E St NW' )
-			->addressLocality( 'Washington' )
-			->addressRegion( 'DC' )
-			->postalCode( '20004' )
-			->addressCountry( 'US' );
+			->streetAddress( $address['streetAddress'] )
+			->addressLocality( $address['addressLocality'] )
+			->addressRegion( $address['addressRegion'] )
+			->postalCode( $address['postalCode'] )
+			->addressCountry( $address['addressCountry'] );
 	}
 
 	/**
@@ -193,7 +248,7 @@ class Generator {
 
 		$website = Schema::webSite()
 			->setProperty( '@id', home_url( '/#website' ) )
-			->name( 'Pew Research Center' )
+			->name( get_bloginfo( 'name' ) )
 			->description( get_bloginfo( 'description' ) )
 			->url( home_url() )
 			->publisher( array( '@id' => home_url( '/#organization' ) ) )
@@ -445,10 +500,29 @@ class Generator {
 	private function generate_organization_schema( $post_id = null ) {
 		// @TODO: Contact someone at PCT for their preferred fully scoped schema JSON definition
 		// to ensure accurate representation of parent organization properties (logo, address, sameAs, etc.).
-		$parent_org = Schema::organization()
-			->name( 'The Pew Charitable Trusts' )
-			->url( 'https://www.pewtrusts.org' )
-			->address( $this->get_organization_address() );
+		/**
+		 * Filter parent organization for the main publisher Organization schema.
+		 * Return false to omit parentOrganization and funder.
+		 *
+		 * @param array{name:string,url:string}|false $config Parent org name and URL, or false to disable.
+		 */
+		$parent_org_config = apply_filters(
+			'prc_schema_seo_parent_organization',
+			array(
+				'name' => 'The Pew Charitable Trusts',
+				'url'  => 'https://www.pewtrusts.org',
+			)
+		);
+
+		$parent_org = null;
+		if ( false !== $parent_org_config && is_array( $parent_org_config ) ) {
+			$parent_org = Schema::organization()
+				->name( $parent_org_config['name'] )
+				->url( $parent_org_config['url'] )
+				->address( $this->get_organization_address() );
+		}
+
+		$org_config = $this->get_org_config();
 
 		// Get areas of expertise from taxonomy for knowsAbout property.
 		$knows_about = array();
@@ -502,15 +576,13 @@ class Generator {
 
 		$org = Schema::organization()
 			->setProperty( '@id', home_url( '/#organization' ) )
-			->name( 'Pew Research Center' )
-			->url( 'https://www.pewresearch.org' )
-			->alternateName( array( 'Pew Research', 'PRC' ) )
-			->slogan( 'Numbers, Facts and Trends Shaping Your World' )
-			->foundingDate( '2004-07-01' )
-			->setProperty( 'nonprofitStatus', 'https://schema.org/Nonprofit501c3' )
-			->parentOrganization( $parent_org )
-			->funder( $parent_org )
-			->publishingPrinciples( 'https://www.pewresearch.org/about/our-mission/' )
+			->name( $org_config['name'] )
+			->url( $org_config['url'] )
+			->alternateName( $org_config['alternate_names'] )
+			->slogan( $org_config['slogan'] )
+			->foundingDate( $org_config['founding_date'] )
+			->setProperty( 'nonprofitStatus', $org_config['nonprofit_status'] )
+			->publishingPrinciples( $org_config['publishing_principles'] )
 			->correctionsPolicy( '' ) // @TODO: Add corrections policy URL when available.
 			->contactPoint( $contact_point )
 			->logo(
@@ -523,6 +595,11 @@ class Generator {
 			->sameAs(
 				$this->get_same_as_array()
 			);
+
+		if ( null !== $parent_org ) {
+			$org->parentOrganization( $parent_org );
+			$org->funder( $parent_org );
+		}
 
 		// Add knowsAbout if we have expertise areas.
 		if ( ! empty( $knows_about ) ) {
@@ -806,6 +883,8 @@ class Generator {
 				break;
 		}
 
+		$org_config = $this->get_org_config();
+
 		// Basic properties
 		$article
 			->headline( $seo_data['title'] )
@@ -815,8 +894,8 @@ class Generator {
 			->publisher(
 			Schema::organization()
 				->setProperty( '@id', home_url( '/#organization' ) )
-				->name( 'Pew Research Center' )
-				->url( 'https://www.pewresearch.org' )
+				->name( $org_config['name'] )
+				->url( $org_config['url'] )
 				->logo(
 					Schema::imageObject()
 						->url( content_url( 'images/logo.png' ) )
@@ -867,7 +946,7 @@ class Generator {
 						$person->jobTitle( $byline['job_title'] );
 					}
 
-					$person->worksFor( 'Pew Research Center' );
+					$person->worksFor( $org_config['name'] );
 
 					$authors[] = $person;
 				}
