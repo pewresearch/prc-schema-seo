@@ -1755,191 +1755,191 @@ return array(
 		'path'    => $vendorDir . '/prc/block-utils/src/Pagination.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Admin_Columns' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/admin-columns/class-admin-columns.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\CLI_Benchmark' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/cli/class-cli-benchmark.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\CLI_Compare' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/cli/class-cli-compare.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\CLI_Migration' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/cli/class-cli-migration.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Cache_Invalidator' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/class-cache-invalidator.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Columns\\Description' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/admin-columns/columns/class-description.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Columns\\Google_Index_Filtering' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/admin-columns/columns/class-google-index-status.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Columns\\Google_Index_Status' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/admin-columns/columns/class-google-index-status.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Columns\\IndexNow_Filtering' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/admin-columns/columns/class-indexnow-status.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Columns\\IndexNow_Status' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/admin-columns/columns/class-indexnow-status.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Columns\\Noindex' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/admin-columns/columns/class-noindex.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Columns\\Noindex_Filtering' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/admin-columns/columns/class-noindex.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Columns\\Primary_Term' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/admin-columns/columns/class-primary-term.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Columns\\Primary_Term_Filtering' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/admin-columns/columns/class-primary-term.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Columns\\Primary_Term_Setting' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/admin-columns/columns/class-primary-term.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Columns\\Schema_Type' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/admin-columns/columns/class-schema-type.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Columns\\Schema_Type_Filtering' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/admin-columns/columns/class-schema-type.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Columns\\Title' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/admin-columns/columns/class-title.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Contact_Resolver' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/class-contact-resolver.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Editing\\Primary_Term_Editing' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/admin-columns/editing/class-primary-term-editing.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Editor_UI' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/admin/class-editor-ui.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Generator' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/schema/class-generator.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\IndexNow' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/class-indexnow.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\JSON_Output' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/schema/class-json-output.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Loader' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/class-loader.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Meta_Tags' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/class-meta-tags.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Metadata' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/class-metadata.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Parsely_Integration' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/class-parsely-integration.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Plugin' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/class-plugin.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Plugin_Activator' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/class-plugin-activator.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Plugin_Deactivator' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/class-plugin-deactivator.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Primary_Term' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/class-primary-term.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\QR_Attachment' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/class-qr-attachment.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\REST_API' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/class-rest-api.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Reading_Score' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/class-reading-score.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Redirect_CSV_Import' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/admin/class-redirect-csv-import.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Redirect_On_Slug_Change' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/class-redirect-on-slug-change.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\SEO_AI_Ability' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/ai-experiment/class-seo-ai-ability.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\SEO_AI_Experiment' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/ai-experiment/class-seo-ai-experiment.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Search_Console' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/class-search-console.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Sitemap_Integration' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/class-sitemap-integration.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Storage\\SEO_Data_Storage' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/admin-columns/storage/class-seo-data-storage.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Taxonomy_UI' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/admin/class-taxonomy-ui.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Template_Context' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/class-template-context.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Template_Defaults' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/class-template-defaults.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Token_Resolver' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/class-token-resolver.php'
 	),
 	'PRC\\Platform\\Schema_SEO\\Yoast_Migrator' => array(
-		'version' => '1.6.0.0',
+		'version' => '1.6.1.0',
 		'path'    => $baseDir . '/includes/class-yoast-migrator.php'
 	),
 	'Path_Processor' => array(

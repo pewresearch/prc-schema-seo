@@ -4,7 +4,14 @@
  *
  * Wires PRC SEO data into the official wp-parsely metadata pipeline via filters.
  * JSON-LD vs repeated meta tags follows the Parse.ly plugin settings in WP Admin.
- * Outputs Parsely meta tags on contexts where wp-parsely does not render (front page, term archives).
+ *
+ * On the front page, term archives, and RLS template singular requests, PRC
+ * emits its own parsely-* meta tags from wp_head priority 3 and suppresses
+ * wp-parsely's renderer by returning an empty array from the per-request
+ * `wp_parsely_metadata` filter. The renderer bails at its
+ * `! isset( $metadata['headline'] )` guard, avoiding duplicate
+ * <meta name="parsely-*"> output (notably parsely-title) when wp-parsely is
+ * configured for `repeated_metas`.
  *
  * @package PRC\Platform\Schema_SEO
  */
@@ -60,11 +67,12 @@ class Parsely_Integration {
 	 */
 	public function init(): void {
 		$this->loader->add_filter( 'wpvip_parsely_load_mu', $this, 'enable_parsely_mu_on_local' );
-		$this->loader->add_filter( 'wp_parsely_should_insert_metadata', $this, 'should_insert_wp_parsely_metadata' );
 		$this->loader->add_filter( 'wp_parsely_metadata', $this, 'filter_wp_parsely_metadata', 10, 3 );
 		$this->loader->add_filter( 'wp_parsely_permalink', $this, 'filter_wp_parsely_permalink', 10, 3 );
 
-		// wp-parsely does not render metadata on front page or term archives (requires global $post); keep explicit output.
+		// PRC owns parsely-* output on the front page and term archives.
+		// wp-parsely's own renderer is suppressed for these contexts via
+		// filter_wp_parsely_metadata() returning an empty array (see notes there).
 		$this->loader->add_action( 'wp_head', $this, 'output_term_parsely_tags', 3 );
 		$this->loader->add_action( 'wp_head', $this, 'output_home_parsely_tags', 3 );
 	}
@@ -82,35 +90,19 @@ class Parsely_Integration {
 	}
 
 	/**
-	 * Disable wp-parsely head output where PRC outputs its own tags or wp-parsely cannot target the page.
+	 * Map PRC SEO and platform data onto wp-parsely's metadata array.
 	 *
-	 * @param bool $insert Whether to insert metadata.
-	 * @return bool
-	 */
-	public function should_insert_wp_parsely_metadata( $insert ) {
-		if ( ! $insert ) {
-			return false;
-		}
-		if ( ! did_action( 'wp' ) ) {
-			return $insert;
-		}
-		if ( is_front_page() ) {
-			return false;
-		}
-		if ( is_category() || is_tag() || is_tax() ) {
-			return false;
-		}
-		if ( is_singular() ) {
-			$post = get_queried_object();
-			if ( $post instanceof \WP_Post && defined( 'PRC_RLS_TEMPLATE_POST_TYPE' ) && PRC_RLS_TEMPLATE_POST_TYPE === $post->post_type ) {
-				return false;
-			}
-		}
-		return true;
-	}
-
-	/**
-	 * Map PRC SEO and platform data onto wp-parsely's metadata array (singular content only).
+	 * On contexts where PRC emits its own parsely-* tags (front page, term
+	 * archives, RLS template post type), this returns an empty array. That
+	 * causes wp-parsely's Metadata_Renderer::render_metadata_on_head() to
+	 * bail at its `! isset( $metadata['headline'] )` guard, suppressing
+	 * duplicate <meta name="parsely-*"> output regardless of whether the
+	 * site is configured for `json_ld` or `repeated_metas`.
+	 *
+	 * Note: wp-parsely evaluates `wp_parsely_should_insert_metadata` exactly
+	 * once at plugin init (in Metadata_Renderer::run()) — before `wp` has
+	 * fired and before conditional tags work. Gating per-request via
+	 * `wp_parsely_metadata` is the only reliable suppression path.
 	 *
 	 * @param array    $metadata        Parsely metadata.
 	 * @param \WP_Post $post            Post object.
@@ -118,7 +110,24 @@ class Parsely_Integration {
 	 * @return array
 	 */
 	public function filter_wp_parsely_metadata( $metadata, $post, $parsely_options ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
-		if ( ! is_array( $metadata ) || ! $post instanceof \WP_Post ) {
+		if ( ! is_array( $metadata ) ) {
+			return $metadata;
+		}
+
+		// Suppress wp-parsely's render on contexts where PRC emits its own tags.
+		if ( did_action( 'wp' ) ) {
+			if ( is_front_page() || is_category() || is_tag() || is_tax() ) {
+				return array();
+			}
+			if ( is_singular() && defined( 'PRC_RLS_TEMPLATE_POST_TYPE' ) ) {
+				$queried = get_queried_object();
+				if ( $queried instanceof \WP_Post && PRC_RLS_TEMPLATE_POST_TYPE === $queried->post_type ) {
+					return array();
+				}
+			}
+		}
+
+		if ( ! $post instanceof \WP_Post ) {
 			return $metadata;
 		}
 
@@ -129,7 +138,7 @@ class Parsely_Integration {
 			return $metadata;
 		}
 		if ( defined( 'PRC_RLS_TEMPLATE_POST_TYPE' ) && PRC_RLS_TEMPLATE_POST_TYPE === $post_type ) {
-			return $metadata;
+			return array();
 		}
 
 		$data = $this->seo_metadata->get_seo_data( $post_id );

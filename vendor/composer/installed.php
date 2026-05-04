@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
         'name' => 'prc/schema-seo',
-        'pretty_version' => 'v1.6',
-        'version' => '1.6.0.0',
-        'reference' => '84d58d1a7c7964bab5f6203326b4b62e40353037',
+        'pretty_version' => 'v1.6.1',
+        'version' => '1.6.1.0',
+        'reference' => '56f623461f30a0005cc2760394aafc1d55a856c8',
         'type' => 'wordpress-plugin',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -119,9 +119,9 @@
             'dev_requirement' => false,
         ),
         'prc/schema-seo' => array(
-            'pretty_version' => 'v1.6',
-            'version' => '1.6.0.0',
-            'reference' => '84d58d1a7c7964bab5f6203326b4b62e40353037',
+            'pretty_version' => 'v1.6.1',
+            'version' => '1.6.1.0',
+            'reference' => '56f623461f30a0005cc2760394aafc1d55a856c8',
             'type' => 'wordpress-plugin',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

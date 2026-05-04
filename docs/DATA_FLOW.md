@@ -57,12 +57,24 @@ Singular (post types with prc-schema-seo support)
     → Merge headline, canonical url, thumbnail, keywords, articleSection, authors, dates
 
 Front page + term archives (category / tag / tax)
-    → wp_parsely_should_insert_metadata = false (avoid duplicate / wrong context)
+    → wp_parsely_metadata returns array() → wp-parsely's Metadata_Renderer bails
+      at its `! isset( $metadata['headline'] )` guard, suppressing duplicate
+      <meta name="parsely-*"> emission under repeated_metas mode.
     → wp_head @ priority 3: explicit parsely-title / parsely-link / parsely-type meta (cached)
+
+RLS template post type singular
+    → wp_parsely_metadata returns array() → wp-parsely renderer bails;
+      RLS plugin emits its own parsely-* tags via prc-religious-landscape-study.
 
 Local dev
     → wpvip_parsely_load_mu enables VIP’s Parse.ly MU plugin when environment type is "local"
 ```
+
+Why not `wp_parsely_should_insert_metadata`? wp-parsely evaluates that filter
+exactly once, in `Metadata_Renderer::run()` at plugin init — before the `wp`
+action has fired. Conditional tags like `is_front_page()` aren't reliable at
+that point, so the only correct gate for these contexts is the per-request
+`wp_parsely_metadata` filter.
 
 Implementation: `includes/class-parsely-integration.php`. Output format on singular URLs (JSON-LD vs meta tags) is controlled by **Parse.ly plugin settings**, not by `prc-schema-seo`.
 
