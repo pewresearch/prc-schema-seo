@@ -36,14 +36,15 @@ if ( ! defined( 'DEFAULT_TECHNICAL_CONTACT' ) ) {
 	define( 'DEFAULT_TECHNICAL_CONTACT', 'webdev@pewresearch.org' );
 }
 
-// Load the Jetpack Autoloader so runtime version-selection can pick the
-// highest version across all plugins that ship the same library dep
-// (see .cursor/plans/composer-shape-b-migration_0e4e9991.plan.md).
-$prc_schema_seo_autoloader = __DIR__ . '/vendor/autoload_packages.php';
-if ( file_exists( $prc_schema_seo_autoloader ) ) {
-	require_once $prc_schema_seo_autoloader;
+// When running inside the PRC Platform monorepo the root autoloader already
+// provides every dependency; skip per-plugin Jetpack Autoloader initialization.
+if ( ! defined( 'PRC_PLATFORM' ) ) {
+	$prc_schema_seo_autoloader = __DIR__ . '/vendor/autoload_packages.php';
+	if ( file_exists( $prc_schema_seo_autoloader ) ) {
+		require_once $prc_schema_seo_autoloader;
+	}
+	unset( $prc_schema_seo_autoloader );
 }
-unset( $prc_schema_seo_autoloader );
 
 define( 'PRC_SCHEMA_SEO_FILE', __FILE__ );
 define( 'PRC_SCHEMA_SEO_DIR', __DIR__ );

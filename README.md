@@ -10,7 +10,23 @@ Provides schema generation, SEO meta tags, primary term management, preview pane
 - Editor previews (search, social, chat, internal)
 - Site Editor sidebar for global pattern configuration and noindex lists
 - Extensible pattern token engine
+- AI-powered SEO suggestions (title, description, social text) via the `prc-schema-seo/suggest` WP AI ability
+- Real-Time Collaboration (RTC) compatible editor UI (WP 7.0+)
+- Auto-redirects on slug/term changes via Safe Redirect Manager integration
+- Redirect CSV import UI
+- IndexNow search engine notification on publish
+- Google Search Console URL Inspection integration
+- Reading score WP Ability
 - Parse.ly metadata via the official `wp-parsely` plugin (see below)
+
+## Requirements
+
+**Required plugins** (declared in the plugin header `Requires Plugins` field):
+
+- `prc-scripts` — provides `@prc/components`, `@prc/icons`, and shared webpack configuration
+- `prc-post-publish-pipeline` — post lifecycle hooks used for cache invalidation and IndexNow notifications
+
+The plugin no longer depends on `prc-platform-core`. All shared JS components and scripts are sourced from `prc-scripts`.
 
 ## Parse.ly (`wp-parsely`)
 
@@ -80,46 +96,232 @@ add_filter( 'prc_schema_seo_pattern_tokens', function( $tokens, $post_id ) {
 }, 10, 2 );
 ```
 
-## Filters Overview
+## Filters Reference
 
-Key filters & actions (with typical signatures):
+All hooks use the `prc_schema_seo_` prefix. Return values must match the documented type; invalid types are ignored and logged.
 
-| Hook                                     | Type   | Signature                                                                            | Purpose                                                     |
-| ---------------------------------------- | ------ | ------------------------------------------------------------------------------------ | ----------------------------------------------------------- |
-| `prc_schema_seo_allowed_schema_types`    | filter | `array types = apply_filters( hook, default, post_type )`                            | Whitelist schema types shown in UI                          |
-| `prc_schema_seo_schema_type_default`     | filter | `string type = apply_filters( hook, defaultType, post_type )`                        | Override default schema type per post type                  |
-| `prc_schema_seo_schema_data`             | filter | `array graph = apply_filters( hook, graphArray, post_id, seo_data )`                 | Modify array of schema objects before JSON-LD serialization |
-| `prc_schema_seo_person_schema`           | filter | `Person obj = apply_filters( hook, personSchema, post_id, seo_data )`                | Adjust Person schema                                        |
-| `prc_schema_seo_article_schema`          | filter | `Article obj = apply_filters( hook, articleSchema, post_id, seo_data, schema_type )` | Adjust Article/NewsArticle/etc schema                       |
-| `prc_schema_seo_webpage_schema`          | filter | `WebPage obj = apply_filters( hook, webpageSchema, post_id, seo_data )`              | Adjust WebPage schema                                       |
-| `prc_schema_seo_organization_schema`     | filter | `Organization obj = apply_filters( hook, orgSchema )`                                | Adjust Organization schema                                  |
-| `prc_schema_seo_should_output_schema`    | filter | `bool should = apply_filters( hook, true, post_id )`                                 | Conditionally disable schema output                         |
-| `prc_schema_seo_meta_tags`               | filter | `array tags = apply_filters( hook, metaArray, post_id, seo_data )`                   | Modify meta tag array pre-render                            |
-| `prc_schema_seo_canonical_url`           | filter | `string url = apply_filters( hook, permalink, post_id, seo_data )`                   | Override canonical URL                                      |
-| `prc_schema_seo_noindex`                 | filter | `bool noindex = apply_filters( hook, isNoindex, post_id, seo_data )`                 | Override robots noindex flag                                |
-| `prc_schema_seo_og_image_url`            | filter | `string url = apply_filters( hook, ogUrl, post_id, seo_data )`                       | Override Open Graph image URL                               |
-| `prc_schema_seo_twitter_image_url`       | filter | `string url = apply_filters( hook, twitterUrl, post_id, seo_data )`                  | Override Twitter image URL                                  |
-| `prc_schema_seo_title`                   | filter | `string title = apply_filters( hook, title, post_id )`                               | Final title after pattern resolution                        |
-| `prc_schema_seo_title_pattern`           | filter | `string pattern = apply_filters( hook, rawPattern, post_id )`                        | Adjust raw title pattern before token substitution          |
-| `prc_schema_seo_description_pattern`     | filter | `string pattern = apply_filters( hook, rawPattern, post_id )`                        | Adjust raw description pattern before token substitution    |
-| `prc_schema_seo_description_fallback`    | filter | `string desc = apply_filters( hook, fallbackDesc, post_id )`                         | Provide fallback description text                           |
-| `prc_schema_seo_pattern_tokens`          | filter | `array tokens = apply_filters( hook, tokenMap, post_id )`                            | Add/modify pattern tokens                                   |
-| `prc_schema_seo_primary_term_id`         | filter | `int termId = apply_filters( hook, termId, taxonomy, post_id )`                      | Override selected primary term per taxonomy                 |
-| `prc_schema_seo_template_defaults`       | filter | `array defaults = apply_filters( hook, defaultsArray )`                              | Override site-level template defaults set via settings      |
-| `prc_schema_seo_rest_prepare`            | filter | `array data = apply_filters( hook, seoData, post_id )`                               | Modify REST response for seo data                           |
-| `prc_schema_seo_sanitized_primary_terms` | filter | `array terms = apply_filters( hook, sanitizedTerms, rawData )`                       | Adjust sanitized primary terms map                          |
-| `prc_schema_seo_cache_cleared`           | action | `do_action( hook, post_id )`                                                         | Fires after SEO cache is invalidated                        |
-| `prc_schema_seo_schema_output`           | action | `do_action( hook, post_id, jsonLdScript )`                                           | Fires after schema markup is printed                        |
-| `prc_schema_seo_after_meta_tags`         | action | `do_action( hook, post_id, tagsHtmlOrArray )`                                        | Fires after meta tags output/cached                         |
+### Schema Output
 
-Return types should match expected types; invalid types may be ignored and logged (see validation in assets loader for schema types).
+| Filter | Signature | Purpose |
+| ------ | --------- | ------- |
+| `prc_schema_seo_should_output_schema` | `(bool $should, int $post_id)` | Gate schema emission for a post. Return `false` to suppress. |
+| `prc_schema_seo_minify_json` | `(bool $minify)` | Control whether JSON-LD output is minified. Default `false`. |
+| `prc_schema_seo_schema_type_default` | `(string $type, string $post_type, int $post_id)` | Override the default schema type for a post type. |
+| `prc_schema_seo_allowed_schema_types` | `(array $types, string $post_type)` | Whitelist schema types available in the editor UI. Must return a flat array of strings. |
+| `prc_schema_seo_schema_data` | `(array $schemas, int $post_id, array $seo_data)` | Modify the full schema graph array just before JSON-LD serialization. |
+
+```php
+// Example: mark a custom post type as SoftwareApplication
+add_filter( 'prc_schema_seo_schema_type_default', function( $type, $post_type, $post_id ) {
+    if ( 'tool' === $post_type ) {
+        return 'SoftwareApplication';
+    }
+    return $type;
+}, 10, 3 );
+```
+
+### Schema Objects — Article / Person / WebPage
+
+| Filter | Signature | Purpose |
+| ------ | --------- | ------- |
+| `prc_schema_seo_article_schema` | `(Article $article, int $post_id, array $seo_data, string $schema_type)` | Adjust Article / NewsArticle / BlogPosting schema object before graph merge. |
+| `prc_schema_seo_person_schema` | `(Person $person, int $post_id, array $seo_data)` | Adjust Person schema (used for `staff` post type and author term pages). |
+| `prc_schema_seo_webpage_schema` | `(WebPage $webpage, int $post_id, array $seo_data)` | Adjust the final WebPage schema object. |
+| `prc_schema_seo_webpage_graph_item` | `(WebPage $webpage, int $post_id, array $seo_data)` | Adjust the WebPage item specifically as a graph item reference before the full schema merge. |
+| `prc_schema_seo_breadcrumb_schema` | `(BreadcrumbList $list, int $post_id, array $seo_data)` | Adjust the BreadcrumbList schema for a post. |
+
+### Schema Objects — Organization
+
+| Filter | Signature | Purpose |
+| ------ | --------- | ------- |
+| `prc_schema_seo_organization_schema` | `(Organization $org, int $post_id)` | Adjust the fully assembled Organization schema object. |
+| `prc_schema_seo_organization_config` | `(array $config)` | Override the Organization config array (name, URL, logo, social profiles). Replaces the full config; merge carefully. |
+| `prc_schema_seo_organization_name` | `(string $name)` | Override the organization name string. Used across schema, AI prompts, and Yoast migration. |
+| `prc_schema_seo_organization_address` | `(array $address)` | Override the postal address array (`streetAddress`, `addressLocality`, `postalCode`, `addressCountry`). |
+| `prc_schema_seo_same_as` | `(array $urls)` | Override the `sameAs` URL array on the Organization schema. |
+| `prc_schema_seo_parent_organization` | `(array $config)` | Override the parent organization config (`name`, `url`). Defaults to The Pew Charitable Trusts. |
+
+### Schema Objects — Terms / Archives
+
+| Filter | Signature | Purpose |
+| ------ | --------- | ------- |
+| `prc_schema_seo_term_schema` | `(CollectionPage $collection, WP_Term $term)` | Adjust the schema collection for a term archive page. |
+| `prc_schema_seo_defined_term_schema` | `(DefinedTerm $defined_term, WP_Term $term, array $term_meta)` | Adjust the DefinedTerm schema object for a taxonomy term. |
+| `prc_schema_seo_about_taxonomies` | `(array $taxonomies)` | Taxonomies whose terms are added as `about` references in Article schema. Default: `['category', 'post_tag', 'areas-of-expertise']`. |
+| `prc_schema_seo_about_terms` | `(array $about_terms, int $post_id, array $seo_data)` | Adjust the assembled `about` term references array before schema merge. |
+| `prc_schema_seo_post_type_archive_schema` | `(CollectionPage $collection, WP_Post_Type $post_type_object)` | Adjust the schema collection for a post type archive page. |
+| `prc_schema_seo_post_type_archive_schema_data` | `(array $schemas, string $post_type)` | Modify the full schema data array for a post type archive (includes Website + Organization). |
+| `prc_schema_seo_publications_page_schema` | `(CollectionPage $collection)` | Adjust the schema for the publications index page. |
+| `prc_schema_seo_cache_post_type_archive_schema` | `(bool $should_cache, string $post_type)` | Enable or disable schema caching for a specific post type archive. |
+
+### Schema Objects — Breadcrumbs
+
+| Filter | Signature | Purpose |
+| ------ | --------- | ------- |
+| `prc_schema_seo_term_breadcrumb_schema` | `(BreadcrumbList $list, WP_Term $term)` | Adjust the breadcrumb list for a term archive. |
+| `prc_schema_seo_term_breadcrumb_intermediate` | `(array $crumbs)` | Override the intermediate crumb definitions per taxonomy (e.g., add a "Research Topics" node before category crumbs). Keyed by taxonomy slug. |
+
+### Meta Tags
+
+| Filter | Signature | Purpose |
+| ------ | --------- | ------- |
+| `prc_schema_seo_meta_tags` | `(array $meta, int $post_id, array $seo_data)` | Modify the full meta tag array before rendering. Applies to posts, terms, home, and archives. `$post_id` is `0` for non-singular contexts. |
+| `prc_schema_seo_canonical_url` | `(string $url, int $post_id, array $seo_data)` | Override the canonical URL. Also used by the Parse.ly integration. |
+| `prc_schema_seo_noindex` | `(bool $noindex, int $post_id, array $seo_data)` | Override the robots noindex flag. Applies to posts, terms, and archive contexts. |
+| `prc_schema_seo_og_image_url` | `(string $url, int $post_id, array $seo_data)` | Override the Open Graph image URL. Used for both `og:image` and `twitter:image`. |
+| `prc_schema_seo_og_image_fallback` | `(int\|null $attachment_id, int $post_id)` | Provide a fallback OG image attachment ID when no image is set. |
+| `prc_schema_seo_twitter_site` | `(string $handle)` | Override the `twitter:site` handle. Default: `@pewresearch`. |
+| `prc_schema_seo_article_publisher_url` | `(string $url)` | Override the `article:publisher` Open Graph URL. Default: the organization's Facebook URL. |
+| `prc_schema_seo_title` | `(string $title, int $post_id)` | Final title string after all pattern and token resolution. Applied at output time. |
+| `prc_schema_seo_title_separator` | `(string $sep)` | Override the title separator string. Default: `' | '`. Used in token resolution and meta tag title construction. |
+| `prc_schema_seo_description_fallback` | `(string $desc, int $post_id)` | Override the resolved description string at output time. |
+| `prc_schema_seo_cache_post_type_archive_meta_tags` | `(bool $should_cache, string $post_type)` | Enable or disable meta tag caching for a specific post type archive. |
+
+```php
+// Example: append site name suffix to all titles
+add_filter( 'prc_schema_seo_title', function( $title, $post_id ) {
+    return $title . ' | Pew Research Center';
+}, 10, 2 );
+
+// Example: suppress schema on a specific post
+add_filter( 'prc_schema_seo_should_output_schema', function( $should, $post_id ) {
+    if ( 12345 === $post_id ) {
+        return false;
+    }
+    return $should;
+}, 10, 2 );
+```
+
+### Tokens & Patterns
+
+| Filter | Signature | Purpose |
+| ------ | --------- | ------- |
+| `prc_schema_seo_pattern_tokens` | `(array $tokens, int $post_id)` | Add or modify the token map used in title/description pattern substitution. |
+| `prc_schema_seo_all_template_defaults` | `(array $defaults)` | Override the full array of site-level template defaults (title and description patterns per context type). |
+| `prc_schema_seo_template_contexts` | `(array $contexts)` | Filter the available template context type definitions. |
+
+### Primary Terms
+
+| Filter | Signature | Purpose |
+| ------ | --------- | ------- |
+| `prc_schema_seo_primary_term_taxonomies` | `(array $taxonomies)` | Taxonomies registered for primary term selection in the editor. Default: `['category', 'post_tag']`. |
+| `prc_schema_seo_primary_term_id` | `(int $term_id, string $taxonomy, int $post_id)` | Override the selected primary term ID for a given taxonomy and post. |
+| `prc_schema_seo_sanitized_primary_terms` | `(array $terms, array $raw_data)` | Adjust the sanitized primary terms map after sanitization. |
+
+### REST API
+
+| Filter | Signature | Purpose |
+| ------ | --------- | ------- |
+| `prc_schema_seo_rest_prepare` | `(array $seo_data, int $post_id)` | Modify the SEO data array before it is returned from the REST API endpoint. |
+
+### Editor UI
+
+| Filter | Signature | Purpose |
+| ------ | --------- | ------- |
+| `prc_schema_seo_branding` | `(array $branding)` | Override the branding config passed to the block editor UI (keys: `siteName`, `displayName`, `twitterUsername`, `logoUrl`). |
+| `prc_schema_seo_qr_logo_url` | `(string $url)` | Override the logo URL embedded in QR code images. |
+
+### Contact Resolution
+
+| Filter | Signature | Purpose |
+| ------ | --------- | ------- |
+| `prc_schema_seo_resolved_contact` | `(array $contact, int $post_id)` | Adjust the resolved contact record for a post (used in schema author field). |
+| `prc_schema_seo_default_contact` | `(array $default)` | Override the default fallback contact info when no author is resolved. |
+
+### Redirects
+
+| Filter | Signature | Purpose |
+| ------ | --------- | ------- |
+| `prc_schema_seo_auto_redirect_enabled` | `(bool $enabled)` | Enable or disable automatic 301 redirect creation on slug changes. Default: `true`. |
+| `prc_schema_seo_auto_redirect_status_code` | `(int $code)` | Override the HTTP status code for auto-redirects. Default: `301`. |
+| `prc_schema_seo_auto_redirect_post_types` | `(bool $eligible, string $post_type)` | Control whether a specific post type gets auto-redirects on slug change. |
+| `prc_schema_seo_enabled_taxonomies_for_term_meta` | `(array $taxonomies)` | Taxonomies that get SEO term meta UI fields and auto-redirect support. Default: `['category', 'post_tag', 'areas-of-expertise']`. |
+
+### Redirect CSV Import
+
+| Filter | Signature | Purpose |
+| ------ | --------- | ------- |
+| `prc_schema_seo_csv_import_max_size` | `(int $bytes)` | Maximum file size allowed for redirect CSV uploads. Default: `5 * MB_IN_BYTES`. |
+| `prc_schema_seo_csv_import_column_mapping` | `(array $mapping)` | Override column name-to-SRM field mapping for CSV imports. |
+
+### AI Features
+
+These filters require the WP AI plugin to be active.
+
+| Filter | Signature | Purpose |
+| ------ | --------- | ------- |
+| `prc_schema_seo_ai_request_timeout` | `(int $seconds)` | Override the HTTP timeout for AI API requests. Default: `60`. |
+| `prc_schema_seo_ai_brand_context` | `(string $instructions)` | Override the full brand context instruction string passed to the AI model. |
+| `prc_schema_seo_ai_brand_rules` | `(string $rules)` | Override the brand-specific writing rules injected into AI prompts (e.g., "key findings" phrasing guidance). |
+
+```php
+// Example: customize the AI system prompt context for your organization
+add_filter( 'prc_schema_seo_ai_brand_context', function( $instructions ) {
+    return str_replace( 'nonpartisan research organization', 'global news outlet', $instructions );
+} );
+```
+
+### Search Console & IndexNow
+
+| Filter | Signature | Purpose |
+| ------ | --------- | ------- |
+| `prc_schema_seo_gsc_production_url` | `(string $url)` | Override the production base URL used to map local URLs for GSC inspection. Default: `https://www.pewresearch.org`. |
+| `prc_schema_seo_indexnow_enabled` | `(bool $enabled)` | Enable or disable IndexNow search engine notifications. Default: `true`. |
+
+### Utility
+
+| Filter | Signature | Purpose |
+| ------ | --------- | ------- |
+| `prc_schema_seo_category_expertise_id` | `(int $expertise_id, int $category_term_id)` | Override the resolved areas-of-expertise term ID for a category term. |
+| `prc_schema_seo_yoast_primary_term_taxonomies` | `(array $taxonomies)` | Override the taxonomies scanned when migrating primary terms from Yoast SEO. |
+
+### Actions
+
+| Action | Signature | Purpose |
+| ------ | --------- | ------- |
+| `prc_schema_seo_cache_cleared` | `(int $post_id)` | Fires after all SEO caches are invalidated for a post. |
+| `prc_schema_seo_schema_output` | `(mixed $id, string $json_ld)` | Fires after schema JSON-LD markup is printed. `$id` is the post ID, term ID, post type slug, or `'publications'`. |
+| `prc_schema_seo_after_meta_tags` | `(int $post_id, string $html)` | Fires after meta tags HTML is output or served from cache. `$post_id` is `0` for non-singular contexts. |
+| `prc_schema_seo_term_meta_updated` | `(int $term_id, array $meta)` | Fires after term SEO meta is saved via the taxonomy UI. |
+| `prc_schema_seo_generator_cache_cleared` | `(mixed $id, string $type)` | Fires after the schema generator cache is cleared for a specific ID and type. |
+
+## JavaScript Filters
+
+The block editor UI exposes three `@wordpress/hooks` filter points for extending the SEO sidebar panels. Use `addFilter` from `@wordpress/hooks`:
+
+| Filter | Panel | Purpose |
+| ------ | ----- | ------- |
+| `prc-platform.seo.ui.search` | Block editor — Search tab | Append additional `PanelBody` sections after the Search and Search Advanced panels. |
+| `prc-platform.seo.ui.social` | Block editor — Social tab | Wrap or extend the Social metadata panel. |
+| `prc-platform.seo.ui.site-editor.social` | Site Editor — Social tab | Wrap or extend the Social panel in the Site Editor context. |
+
+```js
+import { addFilter } from '@wordpress/hooks';
+
+addFilter(
+    'prc-platform.seo.ui.search',
+    'my-plugin/extend-search-panel',
+    ( SearchComponent ) => ( props ) => (
+        <>
+            <SearchComponent { ...props } />
+            { /* Additional panels */ }
+        </>
+    )
+);
+```
 
 ## Building
 
-From monorepo root:
+From monorepo root (uses Turbo for cache-aware builds):
 
 ```bash
-npm run build -w @prc/schema-seo
+npx turbo build --filter=@prc/schema-seo
+```
+
+To also rebuild downstream consumers:
+
+```bash
+npx turbo build --filter=@prc/schema-seo...
 ```
 
 ## Internationalization
@@ -202,7 +404,11 @@ Planned refinements (optional): switch to `hrtime()` for higher precision warm t
 ## Notes
 
 - Title/description patterns only apply when explicit values are missing.
-- Primary term taxonomy map stored in `_prc_seo_data` meta key.
-- Caching uses dedicated cache group for schema & meta tags.
-- Use `prc_schema_seo_allowed_schema_types` to restrict UI options; invalid filter return (non-array or non-string entries) will be logged and ignored.
-- Pattern engine supports both static and dynamic tokens; use `prc_schema_seo_pattern_tokens` for simple replacements and dynamic hooks for custom complex parsing.
+- All SEO data is stored in the `_prc_seo_data` post meta key as a serialized array.
+- Primary term data is part of the `_prc_seo_data` structure under the `primary_terms` key (not a separate meta).
+- Caching uses dedicated cache groups: `prc_schema_seo_data_03112026` (metadata), plus per-class groups in `Generator` and `Meta_Tags`.
+- Use `prc_schema_seo_allowed_schema_types` to restrict UI options; invalid filter returns (non-array or non-string entries) are logged and ignored.
+- Pattern engine supports both static tokens (e.g., `%post_title%`) and dynamic tokens (e.g., `%primary_term:category%`). Use `prc_schema_seo_pattern_tokens` for simple key/value additions.
+- The `prc_schema_seo_noindex` filter fires in singular, term, home, and archive contexts. When `$post_id` is `0`, the `$seo_data` argument contains template-level defaults rather than post-level data.
+- `prc_schema_seo_ai_brand_context` and `prc_schema_seo_ai_brand_rules` require the WP AI plugin (`wordpress/ai`) to be active. They are no-ops if the AI plugin is not loaded.
+- The block editor UI is RTC (Real-Time Collaboration) compatible as of v1.1.0. All editor state goes through `editPost()` / `edit_post` REST and is tracked in the collaborative session.
