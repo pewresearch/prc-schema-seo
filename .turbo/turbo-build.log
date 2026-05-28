@@ -21,15 +21,15 @@ built modules 207 KiB (javascript) 5.86 KiB (css/mini-extract) [1m[33m[built]
     css ../../node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[1].use[1]!../../node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[1].use[2]![1m./src/block-editor/previews.css[39m[22m 5.86 KiB [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
     [1m./src/block-editor/panel/ai-suggest-seo.jsx[39m[22m 3.23 KiB [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
   + 6 modules
-webpack 5.106.2 compiled [1m[32msuccessfully[39m[22m in 16052 ms
+webpack 5.106.2 compiled [1m[32msuccessfully[39m[22m in 10741 ms
 asset [1m[32mindex.js[39m[22m 39.6 KiB [1m[32m[emitted][39m[22m [1m[32m[minimized][39m[22m (name: index)
 asset [1m[32mindex.asset.php[39m[22m 272 bytes [1m[32m[emitted][39m[22m (name: index)
 Entrypoint [1mindex[39m[22m 39.9 KiB = [1m[32mindex.js[39m[22m 39.6 KiB [1m[32mindex.asset.php[39m[22m 272 bytes
 orphan modules 355 KiB [1m[33m[orphan][39m[22m 376 modules
 [1m./src/site-editor/index.js + 46 modules[39m[22m 107 KiB [1m[31m[not cacheable][39m[22m [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
-webpack 5.106.2 compiled [1m[32msuccessfully[39m[22m in 8686 ms
+webpack 5.106.2 compiled [1m[32msuccessfully[39m[22m in 7929 ms
 asset [1m[32mindex.js[39m[22m 1.86 KiB [1m[32m[emitted][39m[22m [1m[32m[minimized][39m[22m (name: index)
 asset [1m[32mindex.asset.php[39m[22m 84 bytes [1m[32m[emitted][39m[22m (name: index)
 Entrypoint [1mindex[39m[22m 1.94 KiB = [1m[32mindex.js[39m[22m 1.86 KiB [1m[32mindex.asset.php[39m[22m 84 bytes
 [1m./src/admin-surfaces/redirect-csv-import/index.js[39m[22m 3.93 KiB [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
-webpack 5.106.2 compiled [1m[32msuccessfully[39m[22m in 2718 ms
+webpack 5.106.2 compiled [1m[32msuccessfully[39m[22m in 2506 ms
