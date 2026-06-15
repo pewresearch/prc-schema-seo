@@ -127,7 +127,12 @@ class REST_API {
 			);
 		}
 
-		// Validate individual fields
+		unset( $value['indexnow_submitted_at'] );
+		unset( $value['gsc_index_status'] );
+
+		$value = $this->prepare_seo_data_for_update( $value, $object->ID );
+
+		// Validate individual fields after stale data is normalized.
 		$validation_errors = $this->validate_seo_data( $value );
 		if ( ! empty( $validation_errors ) ) {
 			return new \WP_Error(
@@ -137,18 +142,35 @@ class REST_API {
 			);
 		}
 
-		unset( $value['indexnow_submitted_at'] );
-		unset( $value['gsc_index_status'] );
-
-		// Strip primary term mappings that don't belong to the post's assigned terms.
-		if ( isset( $value['primary_terms'] ) && is_array( $value['primary_terms'] ) ) {
-			$value['primary_terms'] = Primary_Term::strip_unassigned( $value['primary_terms'], $object->ID );
-		}
-
 		// Update meta with sanitized data.
 		$this->seo_metadata->update_seo_data( $object->ID, $value );
 
 		return true;
+	}
+
+	/**
+	 * Normalize SEO data before validation and persistence.
+	 *
+	 * Clears stale primary term mappings and invalid OG image IDs so unrelated
+	 * field edits (e.g. clearing descriptions) are not blocked by legacy data.
+	 *
+	 * @param array $data    SEO data to normalize.
+	 * @param int   $post_id Post ID.
+	 * @return array Normalized SEO data.
+	 */
+	private function prepare_seo_data_for_update( array $data, int $post_id ): array {
+		if ( isset( $data['primary_terms'] ) && is_array( $data['primary_terms'] ) ) {
+			$data['primary_terms'] = Primary_Term::prepare_for_post( $data['primary_terms'], $post_id );
+		}
+
+		if ( isset( $data['og_image'] ) && $data['og_image'] ) {
+			$attachment_id = absint( $data['og_image'] );
+			if ( ! wp_attachment_is_image( $attachment_id ) ) {
+				$data['og_image'] = null;
+			}
+		}
+
+		return $data;
 	}
 
 	/**

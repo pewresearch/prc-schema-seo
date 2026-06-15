@@ -214,6 +214,13 @@ add_filter( 'prc_schema_seo_should_output_schema', function( $should, $post_id )
 | ------ | --------- | ------- |
 | `prc_schema_seo_rest_prepare` | `(array $seo_data, int $post_id)` | Modify the SEO data array before it is returned from the REST API endpoint. |
 
+REST updates go through `prc_seo_data` on supported post types. Before field validation runs, `REST_API::prepare_seo_data_for_update()` normalizes stale data left over from Yoast migration or deleted attachments:
+
+- **Primary terms** — `Primary_Term::prepare_for_post()` drops mappings for taxonomies the post no longer uses or terms that no longer exist, so clearing unrelated SEO fields is not blocked by orphaned `primary_terms` entries.
+- **OG image** — attachment IDs that are missing or not images are cleared to `null`.
+
+If editors see `400` errors when clearing SEO or social fields on older posts, check for legacy `primary_terms` or invalid `og_image` values in `_prc_seo_data`; the normalization path should repair these on the next save, but you can also clear them manually via WP-CLI.
+
 ### Editor UI
 
 | Filter | Signature | Purpose |

@@ -231,6 +231,46 @@ class Primary_Term {
 	}
 
 	/**
+	 * Remove primary term mappings that reference missing terms or taxonomies.
+	 *
+	 * @param array $primary_terms Associative array of taxonomy => term_id.
+	 * @return array Filtered primary terms with invalid mappings removed.
+	 */
+	public static function strip_invalid( array $primary_terms ): array {
+		$filtered = array();
+
+		foreach ( $primary_terms as $taxonomy => $term_id ) {
+			$taxonomy = sanitize_key( $taxonomy );
+			$term_id  = absint( $term_id );
+
+			if ( ! $term_id || ! taxonomy_exists( $taxonomy ) ) {
+				continue;
+			}
+
+			$term = get_term( $term_id, $taxonomy );
+
+			if ( $term && ! is_wp_error( $term ) ) {
+				$filtered[ $taxonomy ] = $term_id;
+			}
+		}
+
+		return $filtered;
+	}
+
+	/**
+	 * Normalize primary term mappings before persistence or validation.
+	 *
+	 * @param array $primary_terms Associative array of taxonomy => term_id.
+	 * @param int   $post_id       Post ID.
+	 * @return array Sanitized primary terms with stale mappings removed.
+	 */
+	public static function prepare_for_post( array $primary_terms, int $post_id ): array {
+		return self::strip_invalid(
+			self::strip_unassigned( $primary_terms, $post_id )
+		);
+	}
+
+	/**
 	 * Check if a taxonomy supports primary term selection.
 	 *
 	 * @param string $taxonomy Taxonomy slug.
