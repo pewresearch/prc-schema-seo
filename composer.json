@@ -9,11 +9,6 @@
 		"prc/block-utils": "^1.1",
 		"spatie/schema-org": "^4.0"
 	},
-	"autoload": {
-		"psr-4": {
-			"PRC\\Platform\\Schema_SEO\\": "includes/"
-		}
-	},
 	"repositories": [
 		{
 			"type": "vcs",
