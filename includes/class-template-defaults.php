@@ -556,13 +556,25 @@ class Template_Defaults {
 				$resolved_title = $post->post_title;
 			}
 		}
+		// Guard against a self-referential %post_title% (e.g. a migrated Yoast %%title%%
+		// stored verbatim): fall back to the raw post title so the token never resolves
+		// to itself.
+		if ( $post && ( '' === trim( (string) $resolved_title ) || str_contains( (string) $resolved_title, '%post_title%' ) ) ) {
+			$resolved_title = $post->post_title;
+		}
 		$overrides['%post_title%'] = $resolved_title;
 
 		$resolved_desc = $description;
 		if ( null === $resolved_desc ) {
 			$resolved_desc = isset( $existing_seo['description'] ) ? $existing_seo['description'] : '';
-			if ( ! $resolved_desc && $post ) {
-				$resolved_desc = $post->post_excerpt;
+		}
+		// Guard against a self-referential %post_excerpt% (e.g. a migrated Yoast
+		// %%excerpt%% stored verbatim): fall back to the post's own excerpt, with a
+		// trimmed-content fallback, so the token never resolves to itself.
+		if ( $post && ( '' === trim( (string) $resolved_desc ) || str_contains( (string) $resolved_desc, '%post_excerpt%' ) ) ) {
+			$resolved_desc = $post->post_excerpt;
+			if ( '' === trim( (string) $resolved_desc ) && ! empty( $post->post_content ) ) {
+				$resolved_desc = wp_trim_words( wp_strip_all_tags( $post->post_content ), 55, '...' );
 			}
 		}
 		$overrides['%post_excerpt%'] = $resolved_desc;

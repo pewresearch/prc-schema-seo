@@ -669,9 +669,12 @@ class CLI_Migration extends WPCOM_VIP_CLI_Command {
 	/**
 	 * Clean leftover Yoast %%...%% placeholders from already-migrated PRC SEO data.
 	 *
-	 * Scans _prc_seo_data post meta for title, og_title, and twitter_title fields
-	 * containing Yoast replacement variables (e.g. %%sitename%%, %%title%%) and
-	 * strips them. Optionally processes _prc_seo_term_data as well.
+	 * Scans _prc_seo_data post meta for title, description, and OG/Twitter fields
+	 * containing Yoast replacement variables (e.g. %%sitename%%, %%title%%) and converts
+	 * them to PRC tokens. Fields that reduce to a bare, redundant default token (e.g. a
+	 * description of just %post_excerpt%, the holdover from migrating Yoast's %%excerpt%%)
+	 * are removed so the natural empty -> default fallback applies. Optionally processes
+	 * _prc_seo_term_data as well.
 	 *
 	 * Defaults to dry-run mode. Pass --dry-run=false to write.
 	 *
@@ -767,20 +770,31 @@ class CLI_Migration extends WPCOM_VIP_CLI_Command {
 					if ( empty( $data[ $field ] ) || ! is_string( $data[ $field ] ) ) {
 						continue;
 					}
-					if ( preg_match( '/%%[a-z0-9_]+%%/i', $data[ $field ] ) ) {
-						$original       = $data[ $field ];
-						$converted      = Yoast_Migrator::convert_yoast_tokens( $data[ $field ] );
-						$data[ $field ] = $converted;
-						$changed        = true;
 
+					$original = $data[ $field ];
+					$value    = $original;
+
+					// Convert any leftover Yoast %%...%% placeholders first.
+					if ( preg_match( '/%%[a-z0-9_]+%%/i', $value ) ) {
+						$value = Yoast_Migrator::convert_yoast_tokens( $value );
+					}
+
+					// Drop fields that reduce to a redundant default token (e.g. a bare
+					// %post_excerpt% description) so the empty -> default fallback applies.
+					if ( Yoast_Migrator::is_redundant_default_token( $field, $value ) ) {
+						unset( $data[ $field ] );
+						$changed = true;
 						WP_CLI::line(
-							sprintf(
-								'Post %d [%s]: "%s" → "%s"',
-								$post->ID,
-								$field,
-								$original,
-								$converted
-							)
+							sprintf( 'Post %d [%s]: "%s" → (removed)', $post->ID, $field, $original )
+						);
+						continue;
+					}
+
+					if ( $value !== $original ) {
+						$data[ $field ] = $value;
+						$changed        = true;
+						WP_CLI::line(
+							sprintf( 'Post %d [%s]: "%s" → "%s"', $post->ID, $field, $original, $value )
 						);
 					}
 				}
@@ -832,20 +846,30 @@ class CLI_Migration extends WPCOM_VIP_CLI_Command {
 					if ( empty( $data[ $field ] ) || ! is_string( $data[ $field ] ) ) {
 						continue;
 					}
-					if ( preg_match( '/%%[a-z0-9_]+%%/i', $data[ $field ] ) ) {
-						$original      = $data[ $field ];
-						$converted     = Yoast_Migrator::convert_yoast_tokens( $data[ $field ] );
-						$data[ $field ] = $converted;
-						$changed       = true;
 
+					$original = $data[ $field ];
+					$value    = $original;
+
+					// Convert any leftover Yoast %%...%% placeholders first.
+					if ( preg_match( '/%%[a-z0-9_]+%%/i', $value ) ) {
+						$value = Yoast_Migrator::convert_yoast_tokens( $value );
+					}
+
+					// Drop fields that reduce to a redundant default token.
+					if ( Yoast_Migrator::is_redundant_default_token( $field, $value ) ) {
+						unset( $data[ $field ] );
+						$changed = true;
 						WP_CLI::line(
-							sprintf(
-								'Term %d [%s]: "%s" → "%s"',
-								$row->term_id,
-								$field,
-								$original,
-								$converted
-							)
+							sprintf( 'Term %d [%s]: "%s" → (removed)', $row->term_id, $field, $original )
+						);
+						continue;
+					}
+
+					if ( $value !== $original ) {
+						$data[ $field ] = $value;
+						$changed        = true;
+						WP_CLI::line(
+							sprintf( 'Term %d [%s]: "%s" → "%s"', $row->term_id, $field, $original, $value )
 						);
 					}
 				}

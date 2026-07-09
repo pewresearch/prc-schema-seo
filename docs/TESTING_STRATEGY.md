@@ -570,11 +570,11 @@ For sample posts, verify in browser:
 
 ### Playwright E2E Tests
 
-The plugin includes Playwright tests that can be extended. wp-env, Playground, and Playwright are centralized at the monorepo root, and these specs live at `tests/prc-schema-seo/`:
+The plugin includes Playwright tests that can be extended. VIP dev-env and Playwright are centralized at the monorepo root, and these specs live at `tests/prc-schema-seo/`:
 
 ```bash
 # Run all schema-seo specs
-npm run env:start
+npm run vip:start
 npm test -- tests/prc-schema-seo/
 
 # Run a single spec
@@ -677,7 +677,7 @@ test.describe('Schema Output', () => {
 
 ```bash
 # Start test environment
-npm run playground:start
+npm run vip:start
 
 # Run all SEO tests
 npm run test -w @prc/schema-seo

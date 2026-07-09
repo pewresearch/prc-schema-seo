@@ -52,7 +52,16 @@ class Token_Resolver {
 				$seo_title    = isset( $existing_seo['title'] ) ? $existing_seo['title'] : '';
 				$seo_desc     = isset( $existing_seo['description'] ) ? $existing_seo['description'] : '';
 				$title        = $seo_title ? $seo_title : $post->post_title;
-				$description  = $seo_desc ? $seo_desc : $post->post_excerpt;
+
+				// %post_excerpt% always resolves to the post's own excerpt (with a
+				// trimmed-content fallback), never the stored SEO description. The stored
+				// description may itself be the literal %post_excerpt% token from a Yoast
+				// %%excerpt%% migration; mapping the token to that value would make it
+				// resolve to itself and leak the raw token into output.
+				$post_excerpt = $post->post_excerpt;
+				if ( '' === trim( (string) $post_excerpt ) && ! empty( $post->post_content ) ) {
+					$post_excerpt = wp_trim_words( wp_strip_all_tags( $post->post_content ), 55, '...' );
+				}
 
 				$primary_cat = Primary_Term::get_name( $post_id, 'category', true );
 				$categories  = wp_get_post_terms( $post_id, 'category', array( 'fields' => 'names' ) );
@@ -63,13 +72,17 @@ class Token_Resolver {
 				$year        = gmdate( 'Y', strtotime( $post->post_date_gmt ) );
 				$post_url    = get_permalink( $post_id );
 
-				$object_title       = $seo_title ? $seo_title : self::resolve_object_title( $post_id );
+				// Only use the stored SEO title/description for the %object_*% tokens when
+				// it is plain text. A token-bearing value (e.g. a migrated %post_title% or
+				// %post_excerpt%) would otherwise resolve to itself, so fall back to the
+				// canonical resolvers instead.
+				$object_title       = ( $seo_title && ! self::has_tokens( $seo_title ) ) ? $seo_title : self::resolve_object_title( $post_id );
 				$object_type        = isset( $existing_seo['type'] ) ? $existing_seo['type'] : self::resolve_object_type( $post_id );
-				$object_description = $seo_desc ? $seo_desc : self::resolve_object_description( $post_id );
+				$object_description = ( $seo_desc && ! self::has_tokens( $seo_desc ) ) ? $seo_desc : self::resolve_object_description( $post_id );
 
 				$singular_tokens = array(
 					'%post_title%'         => $title,
-					'%post_excerpt%'       => $description,
+					'%post_excerpt%'       => $post_excerpt,
 					'%post_type%'          => $post_type,
 					'%post_date%'          => $post_date,
 					'%post_url%'           => $post_url,

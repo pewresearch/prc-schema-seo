@@ -103,6 +103,38 @@ class Yoast_Migrator {
 	);
 
 	/**
+	 * Map of SEO text fields to the bare PRC token that is redundant for that field.
+	 *
+	 * A field whose entire value is its redundant token (e.g. a description of just
+	 * %post_excerpt%, produced by migrating Yoast's %%excerpt%%) is equivalent to PRC's
+	 * empty -> default fallback. The cleanup CLI uses this map to normalize already-migrated data.
+	 *
+	 * @var array<string, string>
+	 */
+	const REDUNDANT_FIELD_TOKENS = array(
+		'title'               => '%post_title%',
+		'og_title'            => '%post_title%',
+		'twitter_title'       => '%post_title%',
+		'description'         => '%post_excerpt%',
+		'og_description'      => '%post_excerpt%',
+		'twitter_description' => '%post_excerpt%',
+	);
+
+	/**
+	 * Determine whether a converted field value is a bare, redundant default token.
+	 *
+	 * @param string $field Field key (e.g. 'description').
+	 * @param string $value Converted field value.
+	 * @return bool True when the value is only the redundant token for that field.
+	 */
+	public static function is_redundant_default_token( string $field, string $value ): bool {
+		if ( ! isset( self::REDUNDANT_FIELD_TOKENS[ $field ] ) ) {
+			return false;
+		}
+		return trim( $value ) === self::REDUNDANT_FIELD_TOKENS[ $field ];
+	}
+
+	/**
 	 * Convert Yoast %%token%% placeholders to PRC %token% equivalents.
 	 *
 	 * Tokens in YOAST_TO_PRC_TOKEN_MAP are converted; %%sitename%% and %%sep%% are stripped.

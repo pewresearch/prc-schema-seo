@@ -199,8 +199,7 @@ class Generator {
 
 		$post     = get_post( $post_id );
 		$seo_data = $this->seo_metadata->get_seo_data( $post_id );
-		// // Apply template pattern resolution at display time.
-		// $seo_data = $this->seo_metadata->resolve_for_display( $seo_data, $post_id );
+		$seo_data = $this->seo_metadata->resolve_tokens( $seo_data, $post_id );
 
 		// Build schema array, with the default website schema first.
 		$schemas = array(
@@ -293,6 +292,7 @@ class Generator {
 			if ( ! empty( $staff->ID ) && is_int( $staff->ID ) ) {
 				$post     = get_post( $staff->ID );
 				$seo_data = $this->seo_metadata->get_seo_data( $staff->ID );
+				$seo_data = $this->seo_metadata->resolve_tokens( $seo_data, $staff->ID );
 				$schemas  = array(
 					$this->generate_website_schema(),
 					$this->generate_organization_schema(),

@@ -505,7 +505,7 @@ add_filter('prc_schema_seo_og_image_fallback', function($og_image, $post_id) {
 
 1. **Test thoroughly** - Run through testing checklist above
 2. **Build plugin** - Run `npm run build -w @prc/schema-seo`
-3. **Test in WordPress Playground** - `npm run playground:start`
+3. **Test in VIP dev-env** - `npm run vip:start`
 
 ### Future Enhancements
 

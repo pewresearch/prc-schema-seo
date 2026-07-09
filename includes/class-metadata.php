@@ -201,20 +201,21 @@ class Metadata {
 	}
 
 	/**
-	 * Resolve template patterns for display.
-	 * This method applies template default patterns and should be called
-	 * at output time (in Meta_Tags and Generator classes), not during caching.
+	 * Resolve SEO tokens and shared data cleanup for any output consumer.
+	 *
+	 * Safe for meta tags, JSON-LD, Parse.ly, and other consumers that need resolved
+	 * field values without SERP template wrapping (e.g. %post_title% %sep% %site_name%).
 	 *
 	 * @param array $seo_data SEO data from get_seo_data().
 	 * @param int   $post_id  Post ID.
-	 * @return array SEO data with template patterns resolved.
+	 * @return array SEO data with tokens resolved and entities decoded.
 	 */
-	public function resolve_for_display( $seo_data, $post_id ) {
+	public function resolve_tokens( $seo_data, $post_id ) {
 		// Strip numeric prefixes from titles (e.g., "1. Introduction" → "Introduction").
 		// This is commonly used for child posts that display numbers on-page but shouldn't in SEO.
 		$seo_data['title'] = preg_replace( '/^\d+\.\s+/', '', $seo_data['title'] );
 
-		// Resolve post-level tokens (%post_title%, %primary_category%, etc.) before template wrapping.
+		// Resolve post-level tokens (%post_title%, %primary_category%, etc.).
 		// use_raw_post_title prevents circular reference when stored title contains %post_title%.
 		$context = Template_Context::get_current_context();
 		if ( Token_Resolver::has_tokens( $seo_data['title'] ) ) {
@@ -230,25 +231,60 @@ class Metadata {
 			$seo_data['og_description'] = Token_Resolver::resolve( $seo_data['og_description'], $post_id, $context, array(), true );
 		}
 
-		// Apply template pattern for title.
-		$seo_data['title'] = apply_filters( 'prc_schema_seo_title', $seo_data['title'], $post_id );
-
-		// Apply template pattern for description.
-		$seo_data['description'] = apply_filters(
-			'prc_schema_seo_description_fallback',
-			$seo_data['description'],
-			$post_id
-		);
-
-		// Apply template default fallback for OG image.
+		// Apply template default fallback for OG image (shared by meta tags and JSON-LD).
 		$seo_data['og_image'] = apply_filters(
 			'prc_schema_seo_og_image_fallback',
 			$seo_data['og_image'],
 			$post_id
 		);
 
-		// Decode HTML entities so downstream consumers (meta tag attributes, JSON-LD)
-		// receive plain text rather than HTML-encoded strings.
+		return $this->decode_seo_text_fields( $seo_data );
+	}
+
+	/**
+	 * Apply SERP presentation patterns for meta tags and document title.
+	 *
+	 * @param array $seo_data SEO data (typically from resolve_tokens()).
+	 * @param int   $post_id  Post ID.
+	 * @return array SEO data with template patterns applied.
+	 */
+	public function apply_display_patterns( $seo_data, $post_id ) {
+		$seo_data['title'] = apply_filters( 'prc_schema_seo_title', $seo_data['title'], $post_id );
+
+		$seo_data['description'] = apply_filters(
+			'prc_schema_seo_description_fallback',
+			$seo_data['description'],
+			$post_id
+		);
+
+		// Template patterns can reintroduce entity-encoded text from post titles, etc.
+		return $this->decode_seo_text_fields( $seo_data );
+	}
+
+	/**
+	 * Resolve template patterns for display.
+	 *
+	 * Composes token resolution and SERP presentation. Call at output time in
+	 * Meta_Tags and other HTML head consumers, not during caching.
+	 *
+	 * @param array $seo_data SEO data from get_seo_data().
+	 * @param int   $post_id  Post ID.
+	 * @return array SEO data with template patterns resolved.
+	 */
+	public function resolve_for_display( $seo_data, $post_id ) {
+		return $this->apply_display_patterns(
+			$this->resolve_tokens( $seo_data, $post_id ),
+			$post_id
+		);
+	}
+
+	/**
+	 * Decode HTML entities on SEO text fields for downstream output.
+	 *
+	 * @param array $seo_data SEO data.
+	 * @return array SEO data with text fields decoded.
+	 */
+	private function decode_seo_text_fields( $seo_data ) {
 		$text_fields = array( 'title', 'description', 'og_title', 'og_description' );
 		foreach ( $text_fields as $field ) {
 			if ( ! empty( $seo_data[ $field ] ) ) {
