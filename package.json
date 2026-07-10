@@ -1,6 +1,6 @@
 {
 	"name": "@prc/schema-seo",
-	"version": "1.1.1",
+	"version": "1.1.0",
 	"description": "Provides a module for PRC Platform that...",
 	"scripts": {
 		"build": "wp-scripts build --source-path=src/block-editor/ --output-path=build/block-editor/ && node ./scripts/prepend-block-editor-pragma.cjs && wp-scripts build --source-path=src/site-editor/ --output-path=build/site-editor/ && wp-scripts build --source-path=src/admin-surfaces/redirect-csv-import/ --output-path=build/admin-surfaces/redirect-csv-import/",
