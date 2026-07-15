@@ -135,7 +135,7 @@ add_filter( 'prc_schema_seo_schema_type_default', function( $type, $post_type, $
 | Filter | Signature | Purpose |
 | ------ | --------- | ------- |
 | `prc_schema_seo_organization_schema` | `(Organization $org, int $post_id)` | Adjust the fully assembled Organization schema object. |
-| `prc_schema_seo_organization_config` | `(array $config)` | Override the Organization config array (name, URL, logo, social profiles). Replaces the full config; merge carefully. |
+| `prc_schema_seo_organization_config` | `(array $config)` | Override the Organization config array (name, URL, description, slogan, logo, social profiles). Replaces the full config; merge carefully. |
 | `prc_schema_seo_organization_name` | `(string $name)` | Override the organization name string. Used across schema, AI prompts, and Yoast migration. |
 | `prc_schema_seo_organization_address` | `(array $address)` | Override the postal address array (`streetAddress`, `addressLocality`, `postalCode`, `addressCountry`). |
 | `prc_schema_seo_same_as` | `(array $urls)` | Override the `sameAs` URL array on the Organization schema. |

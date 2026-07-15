@@ -108,6 +108,7 @@ class Generator {
 					'name'                   => 'Pew Research Center',
 					'url'                    => 'https://www.pewresearch.org', // pragma: allowlist secret — public site URL default, not an API key.
 					'alternate_names'        => array( 'Pew Research', 'PRC' ),
+					'description'            => 'Pew Research Center is a nonpartisan, nonadvocacy fact tank that informs the public about the issues, attitudes and trends shaping the world.',
 					'slogan'                 => 'Numbers, Facts and Trends Shaping Your World',
 					'founding_date'          => '2004-07-01',
 					'nonprofit_status'       => 'https://schema.org/Nonprofit501c3',
@@ -595,6 +596,10 @@ class Generator {
 			->sameAs(
 				$this->get_same_as_array()
 			);
+
+		if ( ! empty( $org_config['description'] ) ) {
+			$org->description( $org_config['description'] );
+		}
 
 		if ( null !== $parent_org ) {
 			$org->parentOrganization( $parent_org );

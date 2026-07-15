@@ -20,6 +20,13 @@ namespace PRC\Platform\Schema_SEO;
 class Reading_Score {
 
 	/**
+	 * Plugin file used to validate activation on the target site.
+	 *
+	 * @var string
+	 */
+	private const PLUGIN_FILE = 'prc-schema-seo/prc-schema-seo.php';
+
+	/**
 	 * Ability name.
 	 *
 	 * @var string
@@ -62,6 +69,7 @@ class Reading_Score {
 							'type'        => 'string',
 							'description' => 'Raw text to analyze. Takes precedence over post_id.',
 						),
+						'site_id' => \PRC\Platform\AI\Utils\site_id_input_schema_property(),
 					),
 				),
 				'output_schema'       => array(
@@ -101,13 +109,25 @@ class Reading_Score {
 						),
 					),
 				),
-				'execute_callback'    => array( $this, 'execute' ),
-				'permission_callback' => function () {
-					return current_user_can( 'edit_posts' );
+				'execute_callback'    => function ( $input ) {
+					return $this->with_site_when_needed(
+						$input,
+						function () use ( $input ) {
+							return $this->execute( $input );
+						}
+					);
+				},
+				'permission_callback' => function ( $input = null ) {
+					return $this->with_site_when_needed(
+						$input,
+						function () {
+							return current_user_can( 'edit_posts' );
+						}
+					);
 				},
 				'meta'                => array(
 					'annotations'  => array(
-						'instructions' => 'Accepts a post_id or raw text and returns Flesch-Kincaid Reading Ease score, Grade Level, and supporting counts (words, sentences, syllables). Use to assess content readability before publication or as part of an editorial quality check. Does not require AI — computation is deterministic.',
+						'instructions' => 'Accepts a post_id or raw text and returns Flesch-Kincaid Reading Ease score, Grade Level, and supporting counts (words, sentences, syllables). For post_id analysis, optionally pass site_id to run against a specific multisite blog; defaults to the content site (20). If this plugin is inactive on the target site, the ability returns plugin_inactive_on_site. Pure text analysis runs on the current blog unless site_id is explicitly passed. Use to assess content readability before publication or as part of an editorial quality check. Does not require AI — computation is deterministic.',
 						'readonly'     => true,
 						'destructive'  => false,
 						'idempotent'   => true,
@@ -350,6 +370,25 @@ class Reading_Score {
 			'word_count'     => 0,
 			'sentence_count' => 0,
 			'syllable_count' => 0,
+		);
+	}
+
+	/**
+	 * Run a callback on the requested target site for post-based or explicitly targeted invocations.
+	 *
+	 * @param array|null $input    Ability input.
+	 * @param callable   $callback Callback to run after site validation/switching.
+	 * @return mixed
+	 */
+	private function with_site_when_needed( $input, callable $callback ) {
+		if ( ! is_array( $input ) || ( empty( $input['post_id'] ) && ! isset( $input['site_id'] ) && ! isset( $input['blog_id'] ) ) ) {
+			return $callback();
+		}
+
+		return \PRC\Platform\AI\Utils\with_site(
+			\PRC\Platform\AI\Utils\resolve_site_id( $input ),
+			self::PLUGIN_FILE,
+			$callback
 		);
 	}
 }
