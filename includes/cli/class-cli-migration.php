@@ -908,6 +908,157 @@ class CLI_Migration extends WPCOM_VIP_CLI_Command {
 	}
 
 	/**
+	 * Delete leftover Yoast SEO wp_options rows.
+	 *
+	 * Removes autoloaded Yoast configuration/cache options that are no longer
+	 * read at runtime after migrating to PRC Schema SEO. Does NOT touch
+	 * _yoast_wpseo_* postmeta or termmeta.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--dry-run=<bool>]
+	 * : Preview without deleting. Default: true.
+	 *
+	 * [--force]
+	 * : Delete even if migration-status shows pending items.
+	 *
+	 * [--known-only]
+	 * : Only delete the known Yoast option keys, not all wpseo% options.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     # Preview what would be deleted
+	 *     wp prc-seo clean-yoast-options
+	 *
+	 *     # Delete for real
+	 *     wp prc-seo clean-yoast-options --dry-run=false
+	 *
+	 *     # Delete only the known SEO autoload options (excludes redirects)
+	 *     wp prc-seo clean-yoast-options --dry-run=false --known-only
+	 *
+	 * @subcommand clean-yoast-options
+	 * @synopsis [--dry-run=<bool>] [--force] [--known-only]
+	 *
+	 * @param array $args       Positional arguments.
+	 * @param array $assoc_args Associative arguments.
+	 */
+	public function clean_yoast_options( $args, $assoc_args ) {
+		global $wpdb;
+
+		$dry_run    = $this->parse_dry_run( $assoc_args );
+		$force      = (bool) Utils\get_flag_value( $assoc_args, 'force', false );
+		$known_only = (bool) Utils\get_flag_value( $assoc_args, 'known-only', false );
+
+		$status        = $this->migrator->get_migration_status();
+		$total_pending = $status['posts']['pending_migration'] + $status['terms']['pending_migration'];
+
+		if ( $total_pending > 0 && ! $force ) {
+			WP_CLI::error(
+				sprintf(
+					'Migration is incomplete (%d items pending). Run wp prc-seo migration-status, finish migration, or pass --force.',
+					$total_pending
+				)
+			);
+		}
+
+		if ( $total_pending > 0 && $force ) {
+			WP_CLI::warning(
+				sprintf(
+					'Proceeding despite %d pending migration items because --force was passed.',
+					$total_pending
+				)
+			);
+		}
+
+		if ( $known_only ) {
+			$option_names = Yoast_Migrator::YOAST_OPTION_KEYS;
+			$placeholders = implode( ', ', array_fill( 0, count( $option_names ), '%s' ) );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT option_name, LENGTH(option_value) AS size_bytes, autoload
+					FROM {$wpdb->options}
+					WHERE option_name IN ({$placeholders})
+					ORDER BY size_bytes DESC",
+					...$option_names
+				),
+				ARRAY_A
+			);
+		} else {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+			$rows = $wpdb->get_results(
+				"SELECT option_name, LENGTH(option_value) AS size_bytes, autoload
+				FROM {$wpdb->options}
+				WHERE option_name LIKE 'wpseo%'
+				ORDER BY size_bytes DESC",
+				ARRAY_A
+			);
+		}
+
+		// Never delete Yoast redirect options — Schema SEO does not migrate redirects.
+		$redirect_rows = array();
+		$safe_rows     = array();
+		foreach ( (array) $rows as $row ) {
+			if ( false !== stripos( $row['option_name'], 'redirect' ) ) {
+				$redirect_rows[] = $row;
+			} else {
+				$safe_rows[] = $row;
+			}
+		}
+		if ( ! empty( $redirect_rows ) ) {
+			WP_CLI::warning(
+				sprintf(
+					'Skipping %d Yoast redirect option(s) (not migrated by Schema SEO; Safe Redirect Manager owns redirects): %s',
+					count( $redirect_rows ),
+					implode( ', ', wp_list_pluck( $redirect_rows, 'option_name' ) )
+				)
+			);
+		}
+		$rows = $safe_rows;
+
+		if ( empty( $rows ) ) {
+			WP_CLI::success( 'No Yoast wp_options rows found.' );
+			return;
+		}
+
+		$table_rows = array_map(
+			static function ( $row ) {
+				return array(
+					'option_name' => $row['option_name'],
+					'size'        => size_format( (int) $row['size_bytes'], 2 ),
+					'autoload'    => $row['autoload'],
+				);
+			},
+			$rows
+		);
+
+		WP_CLI::line( sprintf( 'Found %d Yoast option(s)%s:', count( $rows ), $dry_run ? ' (dry-run)' : '' ) );
+		Utils\format_items( 'table', $table_rows, array( 'option_name', 'size', 'autoload' ) );
+
+		if ( $dry_run ) {
+			WP_CLI::line( '' );
+			WP_CLI::line( 'Run with --dry-run=false to delete these options.' );
+			return;
+		}
+
+		$this->start_bulk_operation();
+
+		$deleted = 0;
+		foreach ( $rows as $row ) {
+			if ( delete_option( $row['option_name'] ) ) {
+				++$deleted;
+				WP_CLI::log( sprintf( 'Deleted %s (%s).', $row['option_name'], size_format( (int) $row['size_bytes'], 2 ) ) );
+			} else {
+				WP_CLI::warning( sprintf( 'Could not delete %s.', $row['option_name'] ) );
+			}
+		}
+
+		$this->end_bulk_operation();
+
+		WP_CLI::success( sprintf( 'Deleted %d Yoast option(s).', $deleted ) );
+	}
+
+	/**
 	 * Parse --dry-run from $assoc_args safely.
 	 *
 	 * WP-CLI passes flag values as strings. Casting (bool) 'false' === true,

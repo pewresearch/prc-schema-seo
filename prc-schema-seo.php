@@ -111,7 +111,7 @@ function run_prc_schema_seo() {
 			\WP_CLI::add_command( 'prc-seo benchmark', array( new CLI_Benchmark(), 'run' ) );
 		}
 
-		// Migration commands: wp prc-seo migrate-post, migrate-posts, migrate-term, migrate-terms, migration-status, preview-yoast
+		// Migration commands: wp prc-seo migrate-post, migrate-posts, migrate-term, migrate-terms, migration-status, preview-yoast, clean-yoast-placeholders, clean-yoast-options
 		if ( class_exists( '\PRC\Platform\Schema_SEO\CLI_Migration' ) ) {
 			\WP_CLI::add_command( 'prc-seo', new CLI_Migration() );
 		}

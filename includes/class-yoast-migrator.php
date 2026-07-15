@@ -74,6 +74,21 @@ class Yoast_Migrator {
 	const PRC_TERM_META_KEY = '_prc_seo_term_data';
 
 	/**
+	 * Yoast options stored in wp_options (not postmeta).
+	 *
+	 * Safe to delete after post/term SEO migration to PRC Schema SEO is complete.
+	 * Redirect options (e.g. wpseo-premium-redirects-*) are intentionally omitted —
+	 * Schema SEO does not migrate redirects (Safe Redirect Manager owns that).
+	 *
+	 * @var array<int, string>
+	 */
+	const YOAST_OPTION_KEYS = array(
+		'wpseo',
+		'wpseo_titles',
+		'wpseo_taxonomy_meta',
+	);
+
+	/**
 	 * Yoast %%token%% to PRC %token% mapping.
 	 *
 	 * Tokens mapped to '' are stripped (%%sitename%%, %%sep%% - template adds these).
@@ -719,12 +734,23 @@ class Yoast_Migrator {
 		);
 		$status['posts']['pending_migration'] = (int) $pending_posts;
 
-		// Count terms with Yoast meta (from options).
+		// Count terms with Yoast meta (from options). Deduplicate term IDs across taxonomies.
 		$yoast_taxonomy_meta = get_option( 'wpseo_taxonomy_meta', array() );
-		$yoast_term_count    = 0;
-		foreach ( $yoast_taxonomy_meta as $terms ) {
-			$yoast_term_count += count( $terms );
+		$yoast_term_ids      = array();
+		if ( is_array( $yoast_taxonomy_meta ) ) {
+			foreach ( $yoast_taxonomy_meta as $terms ) {
+				if ( ! is_array( $terms ) ) {
+					continue;
+				}
+				foreach ( array_keys( $terms ) as $term_id ) {
+					$term_id = (int) $term_id;
+					if ( $term_id > 0 ) {
+						$yoast_term_ids[ $term_id ] = $term_id;
+					}
+				}
+			}
 		}
+		$yoast_term_count                   = count( $yoast_term_ids );
 		$status['terms']['with_yoast_meta'] = $yoast_term_count;
 
 		// Count terms with PRC meta.
@@ -737,8 +763,23 @@ class Yoast_Migrator {
 		);
 		$status['terms']['with_prc_meta'] = (int) $prc_term_count;
 
-		// Pending terms = Yoast terms not in PRC term meta.
-		$status['terms']['pending_migration'] = max( 0, $yoast_term_count - (int) $prc_term_count );
+		// Pending terms = Yoast terms missing PRC term meta (true left-join, not count subtraction).
+		$pending_terms = 0;
+		if ( $yoast_term_count > 0 ) {
+			$term_ids     = array_values( $yoast_term_ids );
+			$placeholders = implode( ', ', array_fill( 0, count( $term_ids ), '%d' ) );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+			$migrated_term_ids = $wpdb->get_col(
+				$wpdb->prepare(
+					"SELECT DISTINCT term_id FROM {$wpdb->termmeta}
+					WHERE meta_key = %s AND term_id IN ({$placeholders})",
+					self::PRC_TERM_META_KEY,
+					...$term_ids
+				)
+			);
+			$pending_terms = $yoast_term_count - count( $migrated_term_ids );
+		}
+		$status['terms']['pending_migration'] = $pending_terms;
 
 		return $status;
 	}

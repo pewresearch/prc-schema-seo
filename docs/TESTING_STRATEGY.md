@@ -88,6 +88,15 @@ wp prc-seo migrate-post <post_id>
 wp prc-seo migrate-posts --post-type=post --batch-size=100
 wp prc-seo migrate-term <term_id> --taxonomy=category
 wp prc-seo migrate-terms --taxonomy=category
+
+# Clean leftover Yoast placeholders from migrated PRC SEO data
+wp prc-seo clean-yoast-placeholders
+wp prc-seo clean-yoast-placeholders --dry-run=false --include-terms
+
+# Delete leftover Yoast wp_options rows (after migration is complete)
+wp prc-seo clean-yoast-options
+wp prc-seo clean-yoast-options --dry-run=false --known-only
+wp prc-seo clean-yoast-options --dry-run=false
 ```
 
 ### Performance Commands
