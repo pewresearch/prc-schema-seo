@@ -803,7 +803,7 @@ class CLI_Migration extends WPCOM_VIP_CLI_Command {
 					++$stats['posts_cleaned'];
 					if ( ! $dry_run ) {
 						update_post_meta( $post->ID, Yoast_Migrator::PRC_POST_META_KEY, $data );
-						wp_cache_delete( 'seo_data_' . $post->ID, Metadata::CACHE_GROUP );
+						wp_cache_delete( Cache_Keys::seo_data( (int) $post->ID ), Metadata::CACHE_GROUP );
 					}
 				}
 			}

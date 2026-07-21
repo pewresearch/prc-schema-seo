@@ -30,20 +30,6 @@ class Search_Console {
 	private $loader;
 
 	/**
-	 * Post IDs queued for inspection during this request.
-	 *
-	 * @var array<int, true>
-	 */
-	private $pending_post_ids = array();
-
-	/**
-	 * Whether the shutdown handler has been registered.
-	 *
-	 * @var bool
-	 */
-	private $shutdown_registered = false;
-
-	/**
 	 * @param Loader $loader The loader instance.
 	 */
 	public function __construct( $loader ) {
@@ -57,8 +43,8 @@ class Search_Console {
 	}
 
 	private function init() {
-		$this->loader->add_action( 'prc_platform_on_publish', $this, 'on_publish_or_update' );
-		$this->loader->add_action( 'prc_platform_on_update', $this, 'on_publish_or_update' );
+		$this->loader->add_action( 'prc_platform_async_on_publish', $this, 'on_publish_or_update' );
+		$this->loader->add_action( 'prc_platform_async_on_update', $this, 'on_publish_or_update' );
 		$this->loader->add_action( 'rest_api_init', $this, 'register_refresh_route' );
 	}
 
@@ -73,29 +59,12 @@ class Search_Console {
 	}
 
 	/**
-	 * Queue a post for inspection on shutdown.
+	 * Inspect a post after publish/update via the async pipeline tier.
 	 *
 	 * @param object $ref_post Extended WP_Post from the publish pipeline.
 	 */
 	public function on_publish_or_update( $ref_post ) {
-		$this->pending_post_ids[ $ref_post->ID ] = true;
-
-		if ( ! $this->shutdown_registered ) {
-			add_action( 'shutdown', array( $this, 'process_pending' ) );
-			$this->shutdown_registered = true;
-		}
-	}
-
-	/**
-	 * Inspect all queued posts. Runs on shutdown so the editor response is
-	 * not blocked by the 1-3 second API call.
-	 *
-	 * @hook shutdown
-	 */
-	public function process_pending() {
-		foreach ( array_keys( $this->pending_post_ids ) as $post_id ) {
-			$this->inspect_and_cache( $post_id, true );
-		}
+		$this->inspect_and_cache( (int) $ref_post->ID, true );
 	}
 
 	/**

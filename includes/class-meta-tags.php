@@ -16,14 +16,19 @@ namespace PRC\Platform\Schema_SEO;
  */
 class Meta_Tags {
 	/**
-	 * Cache group for rendered meta tags (shares group with schema output for unified invalidation).
+	 * Cache group for post / home / archive meta tags (unified group).
 	 */
-	const CACHE_GROUP = 'prc_schema_seo_meta_tags_03112026';
+	const CACHE_GROUP = Cache_Keys::GROUP;
+
+	/**
+	 * Cache group for versioned term meta-tag fragments.
+	 */
+	const TERM_CACHE_GROUP = Cache_Keys::META_TAGS_TERM_GROUP;
 
 	/**
 	 * Cache TTL (1 hour).
 	 */
-	const CACHE_TTL = 3600;
+	const CACHE_TTL = Cache_Keys::TTL;
 
 	/**
 	 * Loader instance.
@@ -485,10 +490,12 @@ class Meta_Tags {
 			return '';
 		}
 
-		$cache_key = 'meta_tags_' . $post_id;
-		$cached    = wp_cache_get( $cache_key, self::CACHE_GROUP );
-		if ( false !== $cached ) {
-			return $cached;
+		$cache_key = Cache_Keys::meta_tags( $post_id );
+		if ( Cache_Keys::caching_enabled() ) {
+			$cached = Cache_Keys::get( $cache_key, self::CACHE_GROUP );
+			if ( false !== $cached ) {
+				return $cached;
+			}
 		}
 
 		$data = $this->seo_metadata->get_seo_data( $post_id );
@@ -581,7 +588,9 @@ class Meta_Tags {
 
 		$html = $this->build_meta_html( $meta );
 
-		wp_cache_set( $cache_key, $html, self::CACHE_GROUP, self::CACHE_TTL );
+		if ( Cache_Keys::caching_enabled() ) {
+			Cache_Keys::set( $cache_key, $html, self::CACHE_GROUP, self::CACHE_TTL );
+		}
 
 		return $html;
 	}
@@ -599,6 +608,8 @@ class Meta_Tags {
 		if ( ! $post_id ) {
 			return;
 		}
+
+		Cache_Keys::prime_post_level( (int) $post_id );
 
 		$html = $this->warm_post_cache( $post_id );
 		if ( '' === $html ) {
@@ -626,17 +637,19 @@ class Meta_Tags {
 			return '';
 		}
 
-		$version_key = 'meta_tags_term_version_' . $term_id;
-		$version     = wp_cache_get( $version_key, self::CACHE_GROUP );
+		$version_key = Cache_Keys::meta_tags_term_version( $term_id );
+		$version     = wp_cache_get( $version_key, self::TERM_CACHE_GROUP );
 		if ( false === $version ) {
 			$version = 1;
-			wp_cache_add( $version_key, $version, self::CACHE_GROUP );
+			wp_cache_add( $version_key, $version, self::TERM_CACHE_GROUP );
 		}
 
-		$cache_key = 'meta_tags_term_' . $term_id . '_v' . $version . '_page_' . $paged;
-		$cached    = wp_cache_get( $cache_key, self::CACHE_GROUP );
-		if ( false !== $cached ) {
-			return $cached;
+		$cache_key = Cache_Keys::meta_tags_term_page( $term_id, (int) $version, $paged );
+		if ( Cache_Keys::caching_enabled() ) {
+			$cached = wp_cache_get( $cache_key, self::TERM_CACHE_GROUP );
+			if ( false !== $cached ) {
+				return $cached;
+			}
 		}
 
 		$meta_data = get_term_meta( $term_id, '_prc_seo_term_data', true );
@@ -696,7 +709,9 @@ class Meta_Tags {
 
 		$meta = apply_filters( 'prc_schema_seo_meta_tags', $meta, 0, $meta_data );
 		$html = $this->build_meta_html( $meta );
-		wp_cache_set( $cache_key, $html, self::CACHE_GROUP, self::CACHE_TTL );
+		if ( Cache_Keys::caching_enabled() ) {
+			wp_cache_set( $cache_key, $html, self::TERM_CACHE_GROUP, self::CACHE_TTL );
+		}
 
 		return $html;
 	}
@@ -707,16 +722,16 @@ class Meta_Tags {
 	 * Increments the term's cache version counter so every existing
 	 * page-specific cache entry (keyed with the old version) becomes a
 	 * miss on next read. Orphaned entries expire naturally via CACHE_TTL.
+	 * Legacy unversioned keys (meta_tags_term_{id}) are no longer written.
 	 *
 	 * @param int $term_id Term ID.
 	 */
 	public static function clear_term_meta_tags_cache( int $term_id ): void {
-		$version_key = 'meta_tags_term_version_' . $term_id;
-		$result      = wp_cache_incr( $version_key, 1, self::CACHE_GROUP );
+		$version_key = Cache_Keys::meta_tags_term_version( $term_id );
+		$result      = wp_cache_incr( $version_key, 1, self::TERM_CACHE_GROUP );
 		if ( false === $result ) {
-			wp_cache_set( $version_key, 2, self::CACHE_GROUP );
+			wp_cache_set( $version_key, 2, self::TERM_CACHE_GROUP );
 		}
-		wp_cache_delete( 'meta_tags_term_' . $term_id, self::CACHE_GROUP );
 	}
 
 	/**
@@ -757,12 +772,14 @@ class Meta_Tags {
 		}
 
 		$paged     = max( 1, absint( get_query_var( 'paged', 1 ) ) );
-		$cache_key = 'meta_tags_home_page_' . $paged;
-		$cached    = wp_cache_get( $cache_key, self::CACHE_GROUP );
-		if ( false !== $cached ) {
-			echo $cached; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Pre-escaped HTML string.
-			do_action( 'prc_schema_seo_after_meta_tags', 0, $cached );
-			return;
+		$cache_key = Cache_Keys::meta_tags_home_page( $paged );
+		if ( Cache_Keys::caching_enabled() ) {
+			$cached = wp_cache_get( $cache_key, self::CACHE_GROUP );
+			if ( false !== $cached ) {
+				echo $cached; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Pre-escaped HTML string.
+				do_action( 'prc_schema_seo_after_meta_tags', 0, $cached );
+				return;
+			}
 		}
 
 		$context = array(
@@ -818,7 +835,9 @@ class Meta_Tags {
 
 		$meta = apply_filters( 'prc_schema_seo_meta_tags', $meta, 0, $defaults );
 		$html = $this->build_meta_html( $meta );
-		wp_cache_set( $cache_key, $html, self::CACHE_GROUP, self::CACHE_TTL );
+		if ( Cache_Keys::caching_enabled() ) {
+			wp_cache_set( $cache_key, $html, self::CACHE_GROUP, self::CACHE_TTL );
+		}
 		echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped when building string.
 		do_action( 'prc_schema_seo_after_meta_tags', 0, $html );
 	}
@@ -857,8 +876,8 @@ class Meta_Tags {
 		$should_cache = apply_filters( 'prc_schema_seo_cache_post_type_archive_meta_tags', true, $post_type );
 
 		$paged     = max( 1, absint( get_query_var( 'paged', 1 ) ) );
-		$cache_key = 'meta_tags_post_type_archive_' . $post_type . '_page_' . $paged;
-		if ( $should_cache ) {
+		$cache_key = Cache_Keys::meta_tags_post_type_archive( (string) $post_type, $paged );
+		if ( $should_cache && Cache_Keys::caching_enabled() ) {
 			$cached = wp_cache_get( $cache_key, self::CACHE_GROUP );
 			if ( false !== $cached ) {
 				echo $cached; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Pre-escaped HTML string.
@@ -930,7 +949,7 @@ class Meta_Tags {
 
 		$meta = apply_filters( 'prc_schema_seo_meta_tags', $meta, 0, $defaults );
 		$html = $this->build_meta_html( $meta );
-		if ( $should_cache ) {
+		if ( $should_cache && Cache_Keys::caching_enabled() ) {
 			wp_cache_set( $cache_key, $html, self::CACHE_GROUP, self::CACHE_TTL );
 		}
 		echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped when building string.

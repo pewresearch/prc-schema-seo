@@ -59,6 +59,7 @@ class Plugin {
 		$this->loader = new Loader();
 
 		// Load required class files
+		require_once __DIR__ . '/class-cache-keys.php';
 		require_once __DIR__ . '/class-primary-term.php';
 		require_once __DIR__ . '/class-token-resolver.php';
 		require_once __DIR__ . '/class-metadata.php';

@@ -20,27 +20,6 @@ class IndexNow {
 	private $loader;
 
 	/**
-	 * URLs queued for submission during this request.
-	 *
-	 * @var string[]
-	 */
-	private $url_queue = array();
-
-	/**
-	 * Whether the shutdown handler has been registered.
-	 *
-	 * @var bool
-	 */
-	private $shutdown_registered = false;
-
-	/**
-	 * Post IDs queued in the current batch, keyed by ID.
-	 *
-	 * @var array<int, true>
-	 */
-	private $post_ids_in_batch = array();
-
-	/**
 	 * @param Loader $loader The loader instance.
 	 */
 	public function __construct( $loader ) {
@@ -52,11 +31,11 @@ class IndexNow {
 		$this->loader->add_action( 'init', $this, 'register_rewrite_rule' );
 		$this->loader->add_action( 'template_redirect', $this, 'serve_key_file' );
 
-		$this->loader->add_action( 'prc_platform_on_publish', $this, 'on_publish_or_update' );
-		$this->loader->add_action( 'prc_platform_on_update', $this, 'on_publish_or_update' );
-		$this->loader->add_action( 'prc_platform_on_untrash', $this, 'on_publish_or_update' );
-		$this->loader->add_action( 'prc_platform_on_unpublish', $this, 'on_removal' );
-		$this->loader->add_action( 'prc_platform_on_trash', $this, 'on_removal' );
+		$this->loader->add_action( 'prc_platform_async_on_publish', $this, 'on_publish_or_update' );
+		$this->loader->add_action( 'prc_platform_async_on_update', $this, 'on_publish_or_update' );
+		$this->loader->add_action( 'prc_platform_async_on_untrash', $this, 'on_publish_or_update' );
+		$this->loader->add_action( 'prc_platform_async_on_unpublish', $this, 'on_removal' );
+		$this->loader->add_action( 'prc_platform_async_on_trash', $this, 'on_removal' );
 	}
 
 	/**
@@ -125,7 +104,7 @@ class IndexNow {
 			return;
 		}
 
-		$this->enqueue_url( $ref_post );
+		$this->submit_for_post( $ref_post );
 	}
 
 	/**
@@ -137,7 +116,7 @@ class IndexNow {
 	 * @param object $ref_post Extended WP_Post object from the pipeline.
 	 */
 	public function on_removal( $ref_post ) {
-		$this->enqueue_url( $ref_post, true );
+		$this->submit_for_post( $ref_post, true );
 	}
 
 	/**
@@ -159,12 +138,12 @@ class IndexNow {
 	}
 
 	/**
-	 * Add a URL to the batch queue and ensure the shutdown handler is registered.
+	 * Submit a single post URL to IndexNow.
 	 *
-	 * @param object $ref_post Extended WP_Post object from the pipeline.
+	 * @param object $ref_post    Extended WP_Post object from the pipeline.
 	 * @param bool   $for_removal True when notifying removal (unpublish/trash); use last stored public URL.
 	 */
-	private function enqueue_url( $ref_post, $for_removal = false ) {
+	private function submit_for_post( $ref_post, $for_removal = false ) {
 		if ( ! apply_filters( 'prc_schema_seo_indexnow_enabled', true ) ) {
 			return;
 		}
@@ -185,26 +164,6 @@ class IndexNow {
 			return;
 		}
 
-		$this->url_queue[]                        = $url;
-		$this->post_ids_in_batch[ $ref_post->ID ] = true;
-
-		if ( ! $this->shutdown_registered ) {
-			add_action( 'shutdown', array( $this, 'submit_batch' ) );
-			$this->shutdown_registered = true;
-		}
-	}
-
-	/**
-	 * Submit all queued URLs to the IndexNow API in a single batch.
-	 *
-	 * @hook shutdown
-	 */
-	public function submit_batch() {
-		$urls = array_unique( $this->url_queue );
-		if ( empty( $urls ) ) {
-			return;
-		}
-
 		$key = $this->get_api_key();
 		if ( '' === $key ) {
 			return;
@@ -216,7 +175,7 @@ class IndexNow {
 			'host'        => $host,
 			'key'         => $key,
 			'keyLocation' => home_url( '/' . $key . '.txt' ),
-			'urlList'     => array_values( $urls ),
+			'urlList'     => array( $url ),
 		);
 
 		wp_remote_post(
@@ -229,9 +188,6 @@ class IndexNow {
 			)
 		);
 
-		$now = time();
-		foreach ( array_keys( $this->post_ids_in_batch ) as $post_id ) {
-			update_post_meta( $post_id, '_prc_schema_seo_indexnow_submitted_at', $now );
-		}
+		update_post_meta( $ref_post->ID, '_prc_schema_seo_indexnow_submitted_at', time() );
 	}
 }

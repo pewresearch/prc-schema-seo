@@ -28,14 +28,14 @@ use Spatie\SchemaOrg\DefinedTerm;
  */
 class Generator {
 	/**
-	 * Cache group for schema output.
+	 * Cache group for schema output (unified post-level group).
 	 */
-	const CACHE_GROUP = 'prc_schema_seo_output_03112026';
+	const CACHE_GROUP = Cache_Keys::GROUP;
 
 	/**
 	 * Cache TTL (1 hour).
 	 */
-	const CACHE_TTL = 3600;
+	const CACHE_TTL = Cache_Keys::TTL;
 
 	/**
 	 * Check if JSON-LD output should be minified.
@@ -185,11 +185,10 @@ class Generator {
 	 */
 	public function generate_schema( $post_id ) {
 		// Term archive handling delegated elsewhere; this method remains post-specific.
-		$cache_key = 'schema_' . $post_id;
+		$cache_key = Cache_Keys::schema( (int) $post_id );
 
-		// Check cache only if caching is enabled.
-		if ( ! defined( 'PRC_SCHEMA_SEO_DISABLE_CACHE' ) || ! PRC_SCHEMA_SEO_DISABLE_CACHE ) {
-			$cached = wp_cache_get( $cache_key, self::CACHE_GROUP );
+		if ( Cache_Keys::caching_enabled() ) {
+			$cached = Cache_Keys::get( $cache_key, self::CACHE_GROUP );
 			if ( false !== $cached ) {
 				return $cached;
 			}
@@ -228,9 +227,8 @@ class Generator {
 		// Convert to JSON-LD
 		$json_ld = $this->schemas_to_json_ld( $schemas );
 
-		// Cache result only if caching is enabled.
-		if ( ! defined( 'PRC_SCHEMA_SEO_DISABLE_CACHE' ) || ! PRC_SCHEMA_SEO_DISABLE_CACHE ) {
-			wp_cache_set( $cache_key, $json_ld, self::CACHE_GROUP, self::CACHE_TTL );
+		if ( Cache_Keys::caching_enabled() ) {
+			Cache_Keys::set( $cache_key, $json_ld, self::CACHE_GROUP, self::CACHE_TTL );
 		}
 
 		return $json_ld;
@@ -271,10 +269,9 @@ class Generator {
 	 * @return string JSON-LD <script> tag or empty string.
 	 */
 	public function generate_term_schema( $term_id ) {
-		$cache_key = 'term_schema_' . $term_id;
+		$cache_key = Cache_Keys::term_schema( (int) $term_id );
 
-		// Check cache only if caching is enabled.
-		if ( ! defined( 'PRC_SCHEMA_SEO_DISABLE_CACHE' ) || ! PRC_SCHEMA_SEO_DISABLE_CACHE ) {
+		if ( Cache_Keys::caching_enabled() ) {
 			$cached = wp_cache_get( $cache_key, self::CACHE_GROUP );
 			if ( false !== $cached ) {
 				return $cached;
@@ -309,8 +306,7 @@ class Generator {
 			}
 
 			$json_ld = $this->schemas_to_json_ld( $schemas );
-			// Cache result only if caching is enabled.
-			if ( ! defined( 'PRC_SCHEMA_SEO_DISABLE_CACHE' ) || ! PRC_SCHEMA_SEO_DISABLE_CACHE ) {
+			if ( Cache_Keys::caching_enabled() ) {
 				wp_cache_set( $cache_key, $json_ld, self::CACHE_GROUP, self::CACHE_TTL );
 			}
 			return $json_ld;
@@ -345,8 +341,7 @@ class Generator {
 				)
 			)
 		);
-		// Cache result only if caching is enabled.
-		if ( ! defined( 'PRC_SCHEMA_SEO_DISABLE_CACHE' ) || ! PRC_SCHEMA_SEO_DISABLE_CACHE ) {
+		if ( Cache_Keys::caching_enabled() ) {
 			wp_cache_set( $cache_key, $json_ld, self::CACHE_GROUP, self::CACHE_TTL );
 		}
 		return $json_ld;
@@ -359,7 +354,7 @@ class Generator {
 	 * @return string JSON-LD <script> tag or empty string.
 	 */
 	public function generate_post_type_archive_schema( $post_type ) {
-		$cache_key = 'post_type_archive_schema_' . $post_type;
+		$cache_key = Cache_Keys::post_type_archive_schema( (string) $post_type );
 
 		/**
 		 * Filter whether to cache the post type archive schema for a given post type.
@@ -375,8 +370,7 @@ class Generator {
 		 */
 		$should_cache = apply_filters( 'prc_schema_seo_cache_post_type_archive_schema', true, $post_type );
 
-		// Check cache only if caching is enabled and allowed for this post type.
-		if ( $should_cache && ( ! defined( 'PRC_SCHEMA_SEO_DISABLE_CACHE' ) || ! PRC_SCHEMA_SEO_DISABLE_CACHE ) ) {
+		if ( $should_cache && Cache_Keys::caching_enabled() ) {
 			$cached = wp_cache_get( $cache_key, self::CACHE_GROUP );
 			if ( false !== $cached ) {
 				return $cached;
@@ -433,10 +427,9 @@ class Generator {
 
 		$json_ld = $this->schemas_to_json_ld( $schemas );
 
-		// Cache result only if caching is enabled and allowed for this post type.
 		// $should_cache was already resolved above (before the cache read) to keep
 		// both the read and write gates in sync.
-		if ( $should_cache && ( ! defined( 'PRC_SCHEMA_SEO_DISABLE_CACHE' ) || ! PRC_SCHEMA_SEO_DISABLE_CACHE ) ) {
+		if ( $should_cache && Cache_Keys::caching_enabled() ) {
 			wp_cache_set( $cache_key, $json_ld, self::CACHE_GROUP, self::CACHE_TTL );
 		}
 
@@ -449,10 +442,9 @@ class Generator {
 	 * @return string JSON-LD <script> tag or empty string.
 	 */
 	public function generate_publications_page_schema() {
-		$cache_key = 'publications_page_schema';
+		$cache_key = Cache_Keys::publications_page_schema();
 
-		// Check cache only if caching is enabled.
-		if ( ! defined( 'PRC_SCHEMA_SEO_DISABLE_CACHE' ) || ! PRC_SCHEMA_SEO_DISABLE_CACHE ) {
+		if ( Cache_Keys::caching_enabled() ) {
 			$cached = wp_cache_get( $cache_key, self::CACHE_GROUP );
 			if ( false !== $cached ) {
 				return $cached;
@@ -478,8 +470,7 @@ class Generator {
 			)
 		);
 
-		// Cache result only if caching is enabled.
-		if ( ! defined( 'PRC_SCHEMA_SEO_DISABLE_CACHE' ) || ! PRC_SCHEMA_SEO_DISABLE_CACHE ) {
+		if ( Cache_Keys::caching_enabled() ) {
 			wp_cache_set( $cache_key, $json_ld, self::CACHE_GROUP, self::CACHE_TTL );
 		}
 
@@ -1335,15 +1326,17 @@ class Generator {
 	 */
 	public function clear_cache( $id, $type = 'post' ) {
 		if ( 'term' === $type ) {
-			$cache_key = 'term_schema_' . $id;
+			$cache_key = Cache_Keys::term_schema( (int) $id );
 		} elseif ( 'post_type_archive' === $type ) {
-			$cache_key = 'post_type_archive_schema_' . $id;
+			$cache_key = Cache_Keys::post_type_archive_schema( (string) $id );
 		} elseif ( 'home' === $type ) {
-			$cache_key = 'home_schema';
+			// Must match generate_publications_page_schema() key (not a legacy home_schema key).
+			$cache_key = Cache_Keys::publications_page_schema();
 		} else {
-			$cache_key = 'schema_' . $id;
+			$cache_key = Cache_Keys::schema( (int) $id );
 		}
 		wp_cache_delete( $cache_key, self::CACHE_GROUP );
+		Cache_Keys::forget( array( $cache_key ), self::CACHE_GROUP );
 		do_action( 'prc_schema_seo_generator_cache_cleared', $id, $type );
 	}
 }

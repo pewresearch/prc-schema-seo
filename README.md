@@ -24,7 +24,7 @@ Provides schema generation, SEO meta tags, primary term management, preview pane
 **Required plugins** (declared in the plugin header `Requires Plugins` field):
 
 - `prc-scripts` — provides `@prc/components`, `@prc/icons`, and shared webpack configuration
-- `prc-post-publish-pipeline` — post lifecycle hooks used for cache invalidation and IndexNow notifications
+- `prc-post-publish-pipeline` — sync and async post lifecycle hooks used for cache invalidation, IndexNow, and Search Console
 
 The plugin no longer depends on `prc-platform-core`. All shared JS components and scripts are sourced from `prc-scripts`.
 
@@ -50,7 +50,7 @@ The platform uses Automattic’s [wp-parsely](https://github.com/Parsely/wp-pars
 
 ### Caching
 
-Home and term Parse.ly HTML fragments are cached with `wp_cache_*` in group `prc_schema_seo_parsely_03112026`, TTL **1 hour**, keys such as `parsely_tags_home` and `parsely_tags_term_{term_id}`. The WP-CLI migration command can warm term cache via the same `Parsely_Integration::warm_term_cache()` path.
+Home and term Parse.ly HTML fragments are cached with `wp_cache_*` in group `prc_schema_seo_parsely_07142026`, TTL **1 hour**, keys such as `parsely_tags_home` and `parsely_tags_term_{term_id}`. Term and home fragments are invalidated on term meta updates and `blogname`/`home`/`siteurl` option changes. The WP-CLI migration command can warm term cache via the same `Parsely_Integration::warm_term_cache()` path.
 
 ### Operational notes
 
@@ -391,6 +391,17 @@ wp prc-schema-seo benchmark --term=55 --taxonomy=category
 
 Output includes cold/warm timings, memory usage, cache ratios, and output sizes in JSON format.
 
+#### Baseline harness (local VIP)
+
+For before/after comparisons across singular, term, home, and post-type archive views:
+
+```bash
+bash plugins/prc-schema-seo/bin/baseline-seo-cache.sh --label=pre --iterations=5
+bash plugins/prc-schema-seo/bin/baseline-seo-cache.sh --label=post --iterations=5
+```
+
+Artifacts land under `plugins/prc-schema-seo/artifacts/baselines/` (gitignored). The summary includes a Query Monitor checklist for object-cache / DB panels.
+
 ### Stress Test (Heavy Taxonomy Load)
 
 Benchmark on a deliberately heavy post (≈50 categories + 40 tags) to validate worst-case performance:
@@ -413,7 +424,7 @@ Planned refinements (optional): switch to `hrtime()` for higher precision warm t
 - Title/description patterns only apply when explicit values are missing.
 - All SEO data is stored in the `_prc_seo_data` post meta key as a serialized array.
 - Primary term data is part of the `_prc_seo_data` structure under the `primary_terms` key (not a separate meta).
-- Caching uses dedicated cache groups: `prc_schema_seo_data_03112026` (metadata), plus per-class groups in `Generator` and `Meta_Tags`.
+- Caching uses `Cache_Keys` (`includes/class-cache-keys.php`): unified group `prc_schema_seo_07142026` for post-level seo_data/schema/meta_tags/contact plus archive schema keys; separate groups for versioned term meta tags and Parse.ly fragments.
 - Use `prc_schema_seo_allowed_schema_types` to restrict UI options; invalid filter returns (non-array or non-string entries) are logged and ignored.
 - Pattern engine supports both static tokens (e.g., `%post_title%`) and dynamic tokens (e.g., `%primary_term:category%`). Use `prc_schema_seo_pattern_tokens` for simple key/value additions.
 - The `prc_schema_seo_noindex` filter fires in singular, term, home, and archive contexts. When `$post_id` is `0`, the `$seo_data` argument contains template-level defaults rather than post-level data.

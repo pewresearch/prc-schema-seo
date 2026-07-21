@@ -2,35 +2,35 @@
 > @prc/schema-seo@1.2.0 build
 > wp-scripts build --source-path=src/block-editor/ --output-path=build/block-editor/ && node ./scripts/prepend-block-editor-pragma.cjs && wp-scripts build --source-path=src/site-editor/ --output-path=build/site-editor/ && wp-scripts build --source-path=src/admin-surfaces/redirect-csv-import/ --output-path=build/admin-surfaces/redirect-csv-import/
 
-assets by path [1m[32m*.css[39m[22m 11.7 KiB
-  asset [1m[32mindex-rtl.css[39m[22m 5.86 KiB [1m[32m[emitted][39m[22m (name: index)
-  asset [1m[32mindex.css[39m[22m 5.86 KiB [1m[32m[emitted][39m[22m (name: index)
-asset [1m[32mindex.js[39m[22m 50.7 KiB [1m[32m[emitted][39m[22m [1m[32m[minimized][39m[22m (name: index)
-asset [1m[32mindex.asset.php[39m[22m 372 bytes [1m[32m[emitted][39m[22m (name: index)
-Entrypoint [1mindex[39m[22m 62.8 KiB = [1m[32mindex.css[39m[22m 5.86 KiB [1m[32mindex.js[39m[22m 50.7 KiB [1m[32mindex-rtl.css[39m[22m 5.86 KiB [1m[32mindex.asset.php[39m[22m 372 bytes
-orphan modules 301 KiB (javascript) 937 bytes (runtime) [1m[33m[orphan][39m[22m 361 modules
+assets by path *.css 11.7 KiB
+  asset index-rtl.css 5.86 KiB [compared for emit] (name: index)
+  asset index.css 5.86 KiB [compared for emit] (name: index)
+asset index.js 50.7 KiB [emitted] [minimized] (name: index)
+asset index.asset.php 372 bytes [compared for emit] (name: index)
+Entrypoint index 62.8 KiB = index.css 5.86 KiB index.js 50.7 KiB index-rtl.css 5.86 KiB index.asset.php 372 bytes
+orphan modules 301 KiB (javascript) 937 bytes (runtime) [orphan] 361 modules
 runtime modules 663 bytes 3 modules
-built modules 145 KiB (javascript) 5.86 KiB (css/mini-extract) [1m[33m[built][39m[22m
-  modules by path [1m../../node_modules/[39m[22m 76 KiB
-    modules by path [1m../../node_modules/qrcode/lib/core/*.js[39m[22m 62.6 KiB 22 modules
-    modules by path [1m../../node_modules/qrcode/lib/renderer/*.js[39m[22m 6.22 KiB 3 modules
-    modules by path [1m../../node_modules/qrcode/lib/*.js[39m[22m 2.11 KiB 2 modules
+built modules 145 KiB (javascript) 5.86 KiB (css/mini-extract) [built]
+  modules by path ../../node_modules/ 76 KiB
+    modules by path ../../node_modules/qrcode/lib/core/*.js 62.6 KiB 22 modules
+    modules by path ../../node_modules/qrcode/lib/renderer/*.js 6.22 KiB 3 modules
+    modules by path ../../node_modules/qrcode/lib/*.js 2.11 KiB 2 modules
     + 1 module
-  modules by path [1m./src/block-editor/[39m[22m 68.3 KiB (javascript) 5.86 KiB (css/mini-extract)
-    [1m./src/block-editor/index.js + 31 modules[39m[22m 65.1 KiB [1m[31m[not cacheable][39m[22m [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
-    css ../../node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[1].use[1]!../../node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[1].use[2]![1m./src/block-editor/previews.css[39m[22m 5.86 KiB [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
-    [1m./src/block-editor/panel/ai-suggest-seo.jsx[39m[22m 3.23 KiB [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
+  modules by path ./src/block-editor/ 68.3 KiB (javascript) 5.86 KiB (css/mini-extract)
+    ./src/block-editor/index.js + 31 modules 65.1 KiB [not cacheable] [built] [code generated]
+    css ../../node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[1].use[1]!../../node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[1].use[2]!./src/block-editor/previews.css 5.86 KiB [built] [code generated]
+    ./src/block-editor/panel/ai-suggest-seo.jsx 3.23 KiB [built] [code generated]
   + 6 modules
-webpack 5.106.2 compiled [1m[32msuccessfully[39m[22m in 21819 ms
-asset [1m[32mindex.js[39m[22m 19.5 KiB [1m[32m[emitted][39m[22m [1m[32m[minimized][39m[22m (name: index)
-asset [1m[32mindex.asset.php[39m[22m 281 bytes [1m[32m[emitted][39m[22m (name: index)
-Entrypoint [1mindex[39m[22m 19.8 KiB = [1m[32mindex.js[39m[22m 19.5 KiB [1m[32mindex.asset.php[39m[22m 281 bytes
-orphan modules 273 KiB [1m[33m[orphan][39m[22m 349 modules
+webpack 5.106.2 compiled successfully in 4490 ms
+asset index.js 19.5 KiB [compared for emit] [minimized] (name: index)
+asset index.asset.php 281 bytes [compared for emit] (name: index)
+Entrypoint index 19.8 KiB = index.js 19.5 KiB index.asset.php 281 bytes
+orphan modules 273 KiB [orphan] 349 modules
 runtime modules 663 bytes 3 modules
-[1m./src/site-editor/index.js + 27 modules[39m[22m 45 KiB [1m[31m[not cacheable][39m[22m [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
-webpack 5.106.2 compiled [1m[32msuccessfully[39m[22m in 14632 ms
-asset [1m[32mindex.js[39m[22m 1.86 KiB [1m[32m[emitted][39m[22m [1m[32m[minimized][39m[22m (name: index)
-asset [1m[32mindex.asset.php[39m[22m 84 bytes [1m[32m[emitted][39m[22m (name: index)
-Entrypoint [1mindex[39m[22m 1.94 KiB = [1m[32mindex.js[39m[22m 1.86 KiB [1m[32mindex.asset.php[39m[22m 84 bytes
-[1m./src/admin-surfaces/redirect-csv-import/index.js[39m[22m 3.93 KiB [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
-webpack 5.106.2 compiled [1m[32msuccessfully[39m[22m in 7001 ms
+./src/site-editor/index.js + 27 modules 45 KiB [not cacheable] [built] [code generated]
+webpack 5.106.2 compiled successfully in 3468 ms
+asset index.js 1.86 KiB [compared for emit] [minimized] (name: index)
+asset index.asset.php 84 bytes [compared for emit] (name: index)
+Entrypoint index 1.94 KiB = index.js 1.86 KiB index.asset.php 84 bytes
+./src/admin-surfaces/redirect-csv-import/index.js 3.93 KiB [built] [code generated]
+webpack 5.106.2 compiled successfully in 1686 ms

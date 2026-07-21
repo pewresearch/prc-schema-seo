@@ -122,5 +122,8 @@ class Primary_Term_Editing implements Service {
 		} else {
 			update_post_meta( $id, self::META_KEY, $seo_data );
 		}
+
+		// Bust derived caches (seo_data, schema, meta_tags, contact).
+		( new \PRC\Platform\Schema_SEO\Metadata( new \PRC\Platform\Schema_SEO\Loader() ) )->clear_cache( $id );
 	}
 }

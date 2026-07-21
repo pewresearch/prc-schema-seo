@@ -19,14 +19,14 @@ namespace PRC\Platform\Schema_SEO;
 class Contact_Resolver {
 
 	/**
-	 * Cache group for contact resolution.
+	 * Cache group for contact resolution (unified post-level group).
 	 */
-	const CACHE_GROUP = 'prc_contact_resolver_03112026';
+	const CACHE_GROUP = Cache_Keys::GROUP;
 
 	/**
 	 * Cache TTL (1 hour).
 	 */
-	const CACHE_TTL = 3600;
+	const CACHE_TTL = Cache_Keys::TTL;
 
 	/**
 	 * Get media contact for a post based on primary category chain.
@@ -37,11 +37,10 @@ class Contact_Resolver {
 	 * @return array Contact data array with name, title, email, phone, url keys.
 	 */
 	public static function get_contact_for_post( $post_id ) {
-		$cache_key = 'contact_' . $post_id;
+		$cache_key = Cache_Keys::contact( (int) $post_id );
 
-		// Check cache only if caching is enabled.
-		if ( ! defined( 'PRC_SCHEMA_SEO_DISABLE_CACHE' ) || ! PRC_SCHEMA_SEO_DISABLE_CACHE ) {
-			$cached = wp_cache_get( $cache_key, self::CACHE_GROUP );
+		if ( Cache_Keys::caching_enabled() ) {
+			$cached = Cache_Keys::get( $cache_key, self::CACHE_GROUP );
 			if ( false !== $cached ) {
 				return $cached;
 			}
@@ -73,9 +72,8 @@ class Contact_Resolver {
 		 */
 		$contact = apply_filters( 'prc_schema_seo_resolved_contact', $contact, $post_id );
 
-		// Cache result only if caching is enabled.
-		if ( ! defined( 'PRC_SCHEMA_SEO_DISABLE_CACHE' ) || ! PRC_SCHEMA_SEO_DISABLE_CACHE ) {
-			wp_cache_set( $cache_key, $contact, self::CACHE_GROUP, self::CACHE_TTL );
+		if ( Cache_Keys::caching_enabled() ) {
+			Cache_Keys::set( $cache_key, $contact, self::CACHE_GROUP, self::CACHE_TTL );
 		}
 
 		return $contact;
@@ -178,7 +176,9 @@ class Contact_Resolver {
 	 * @return void
 	 */
 	public static function clear_cache( $post_id ) {
-		wp_cache_delete( 'contact_' . $post_id, self::CACHE_GROUP );
+		$key = Cache_Keys::contact( (int) $post_id );
+		Cache_Keys::forget( array( $key ), self::CACHE_GROUP );
+		wp_cache_delete( $key, self::CACHE_GROUP );
 	}
 
 	/**

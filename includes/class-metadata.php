@@ -17,14 +17,14 @@ namespace PRC\Platform\Schema_SEO;
  */
 class Metadata {
 	/**
-	 * Cache group for SEO data.
+	 * Cache group for SEO data (unified post-level group).
 	 */
-	const CACHE_GROUP = 'prc_schema_seo_data_03112026';
+	const CACHE_GROUP = Cache_Keys::GROUP;
 
 	/**
 	 * Cache TTL (1 hour).
 	 */
-	const CACHE_TTL = 3600;
+	const CACHE_TTL = Cache_Keys::TTL;
 
 	/**
 	 * The loader instance.
@@ -49,12 +49,10 @@ class Metadata {
 	 * @return array SEO data with defaults applied.
 	 */
 	public function get_seo_data( $post_id ) {
-		// First, check the cache for data.
-		$cache_key = 'seo_data_' . $post_id;
+		$cache_key = Cache_Keys::seo_data( (int) $post_id );
 
-		// Check cache only if caching is enabled.
-		if ( ! defined( 'PRC_SCHEMA_SEO_DISABLE_CACHE' ) || ! PRC_SCHEMA_SEO_DISABLE_CACHE ) {
-			$cached = wp_cache_get( $cache_key, self::CACHE_GROUP );
+		if ( Cache_Keys::caching_enabled() ) {
+			$cached = Cache_Keys::get( $cache_key, self::CACHE_GROUP );
 			if ( false !== $cached ) {
 				return $cached;
 			}
@@ -70,9 +68,8 @@ class Metadata {
 		// Template pattern resolution happens in resolve_for_display() at output time.
 		$seo_data = $this->apply_fallbacks( $seo_data, $post_id );
 
-		// Store in cache only if caching is enabled.
-		if ( ! defined( 'PRC_SCHEMA_SEO_DISABLE_CACHE' ) || ! PRC_SCHEMA_SEO_DISABLE_CACHE ) {
-			wp_cache_set( $cache_key, $seo_data, self::CACHE_GROUP, self::CACHE_TTL );
+		if ( Cache_Keys::caching_enabled() ) {
+			Cache_Keys::set( $cache_key, $seo_data, self::CACHE_GROUP, self::CACHE_TTL );
 		}
 
 		return $seo_data;
@@ -438,12 +435,14 @@ class Metadata {
 	/**
 	 * Clear cache for a post.
 	 *
+	 * Clears seo_data, schema, meta_tags, and contact entries for the post
+	 * from the unified post-level cache group.
+	 *
 	 * @param int $post_id Post ID.
 	 */
 	public function clear_cache( $post_id ) {
-		wp_cache_delete( 'seo_data_' . $post_id, self::CACHE_GROUP );
-		wp_cache_delete( 'schema_' . $post_id, Generator::CACHE_GROUP );
-		wp_cache_delete( 'meta_tags_' . $post_id, Meta_Tags::CACHE_GROUP );
+		$post_id = (int) $post_id;
+		Cache_Keys::delete_multiple( Cache_Keys::post_level_keys( $post_id ), Cache_Keys::GROUP );
 
 		do_action( 'prc_schema_seo_cache_cleared', $post_id );
 	}

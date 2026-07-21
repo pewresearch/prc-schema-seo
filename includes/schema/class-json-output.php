@@ -65,6 +65,7 @@ class JSON_Output {
 			if ( $post_id ) {
 				$post_type = get_post_type( $post_id );
 				if ( post_type_supports( $post_type, 'prc-schema-seo' ) ) {
+					Cache_Keys::prime_post_level( (int) $post_id );
 					$should_output = apply_filters( 'prc_schema_seo_should_output_schema', true, $post_id );
 					if ( $should_output ) {
 						$schema = $this->schema_generator->generate_schema( $post_id );

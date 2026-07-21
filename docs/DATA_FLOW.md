@@ -376,24 +376,30 @@ Implementation: `includes/class-parsely-integration.php`. Output format on singu
   ┌─────────────────────────────────────────────────────────────────────────────────┐
   │                            Object Cache (Memcached/Redis)                        │
   │                                                                                  │
-  │  Cache Group: prc_schema_seo_data_v1.4.3                                         │
+  │  Cache Group: prc_schema_seo_07142026  (Cache_Keys::GROUP — unified post-level) │
   │  ├── seo_data_{post_id}     → Metadata::get_seo_data() output                    │
-  │                                                                                  │
-  │  Cache Group: prc_schema_seo_output_v1.4.4                                       │
   │  ├── schema_{post_id}       → Generator::generate_schema() output                │
+  │  ├── meta_tags_{post_id}    → Meta_Tags::warm_post_cache() HTML                  │
+  │  ├── contact_{post_id}      → Contact_Resolver::get_contact_for_post()           │
   │  ├── term_schema_{term_id}  → Generator::generate_term_schema() output           │
   │  ├── post_type_archive_     → Generator::generate_post_type_archive_schema()     │
   │  │   schema_{post_type}                                                          │
   │  ├── publications_page_     → Generator::generate_publications_page_schema()     │
   │  │   schema                                                                      │
+  │  ├── meta_tags_home_page_{n}                                                     │
+  │  └── meta_tags_post_type_archive_{type}_page_{n}                                 │
   │                                                                                  │
-  │  Cache Group: prc_schema_seo_output                                              │
-  │  ├── meta_tags_{post_id}    → Meta_Tags::output_meta_tags() HTML                 │
-  │  ├── meta_tags_term_{id}_v{ver}_page_{n} → Meta_Tags::output_term_meta_tags()    │
-  │  ├── meta_tags_term_version_{id}          → version counter for invalidation    │
-  │  └── meta_tags_home_page_{n}              → Meta_Tags::output_home_meta_tags()   │
+  │  Cache Group: prc_schema_seo_meta_tags_term_07142026                             │
+  │  ├── meta_tags_term_{id}_v{ver}_page_{n} → versioned term meta tags              │
+  │  └── meta_tags_term_version_{id}         → version counter for invalidation      │
+  │                                                                                  │
+  │  Cache Group: prc_schema_seo_parsely_07142026                                    │
+  │  ├── parsely_tags_home                                                           │
+  │  └── parsely_tags_term_{term_id}                                                 │
   │                                                                                  │
   │  TTL: 3600 seconds (1 hour)                                                      │
+  │  Singular warm path: Cache_Keys::prime_post_level() + wp_cache_get_multiple()    │
+  │  Post invalidation: Cache_Keys::delete_multiple(post_level_keys)                 │
   └─────────────────────────────────────────────────────────────────────────────────┘
                                        │
                          Cache Invalidation Triggers
@@ -414,8 +420,7 @@ Implementation: `includes/class-parsely-integration.php`. Output format on singu
   │           ┌────────────────────────┼────────────────────────┐                    │
   │           │                        │                        │                    │
   │           ▼                        ▼                        ▼                    │
-  │  wp_cache_delete          wp_cache_delete          wp_cache_delete               │
-  │  ('seo_data_{id}')        ('schema_{id}')          ('meta_tags_{id}')            │
+  │  delete_multiple: seo_data / schema / meta_tags / contact (same group)           │
   └──────────────────────────────────────────────────────────────────────────────────┘
 ```
 

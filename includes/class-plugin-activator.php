@@ -22,12 +22,6 @@ class Plugin_Activator {
 	public static function activate() {
 		flush_rewrite_rules();
 		self::seed_default_templates();
-
-		wp_mail(
-			DEFAULT_TECHNICAL_CONTACT,
-			'🔎 PRC Schema SEO Activated',
-			'The PRC Schema SEO plugin has been activated on ' . get_site_url()
-		);
 	}
 
 	/**

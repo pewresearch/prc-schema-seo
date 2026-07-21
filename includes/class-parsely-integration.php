@@ -26,14 +26,14 @@ namespace PRC\Platform\Schema_SEO;
 class Parsely_Integration {
 
 	/**
-	 * Cache group for home/term Parsely output (matches former Parsely_Meta group for invalidation consistency).
+	 * Cache group for home/term Parsely output.
 	 */
-	const CACHE_GROUP = 'prc_schema_seo_parsely_03112026';
+	const CACHE_GROUP = Cache_Keys::PARSELY_GROUP;
 
 	/**
 	 * Cache TTL (1 hour).
 	 */
-	const CACHE_TTL = 3600;
+	const CACHE_TTL = Cache_Keys::TTL;
 
 	/**
 	 * Loader instance.
@@ -75,6 +75,11 @@ class Parsely_Integration {
 		// filter_wp_parsely_metadata() returning an empty array (see notes there).
 		$this->loader->add_action( 'wp_head', $this, 'output_term_parsely_tags', 3 );
 		$this->loader->add_action( 'wp_head', $this, 'output_home_parsely_tags', 3 );
+
+		// Invalidate home Parse.ly fragments when site identity URLs change.
+		$this->loader->add_action( 'update_option_blogname', $this, 'clear_home_cache' );
+		$this->loader->add_action( 'update_option_home', $this, 'clear_home_cache' );
+		$this->loader->add_action( 'update_option_siteurl', $this, 'clear_home_cache' );
 	}
 
 	/**
@@ -268,11 +273,13 @@ class Parsely_Integration {
 			return;
 		}
 
-		$cache_key = 'parsely_tags_home';
-		$cached    = wp_cache_get( $cache_key, self::CACHE_GROUP );
-		if ( false !== $cached ) {
-			echo $cached; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Pre-escaped HTML.
-			return;
+		$cache_key = Cache_Keys::parsely_home();
+		if ( Cache_Keys::caching_enabled() ) {
+			$cached = wp_cache_get( $cache_key, self::CACHE_GROUP );
+			if ( false !== $cached ) {
+				echo $cached; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Pre-escaped HTML.
+				return;
+			}
 		}
 
 		$tags = array(
@@ -281,7 +288,9 @@ class Parsely_Integration {
 			'parsely-type'  => 'index',
 		);
 		$html = $this->build_parsely_html( $tags );
-		wp_cache_set( $cache_key, $html, self::CACHE_GROUP, self::CACHE_TTL );
+		if ( Cache_Keys::caching_enabled() ) {
+			wp_cache_set( $cache_key, $html, self::CACHE_GROUP, self::CACHE_TTL );
+		}
 		echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in build_parsely_html.
 	}
 
@@ -298,10 +307,12 @@ class Parsely_Integration {
 			return '';
 		}
 
-		$cache_key = 'parsely_tags_term_' . $term_id;
-		$cached    = wp_cache_get( $cache_key, self::CACHE_GROUP );
-		if ( false !== $cached ) {
-			return $cached;
+		$cache_key = Cache_Keys::parsely_term( $term_id );
+		if ( Cache_Keys::caching_enabled() ) {
+			$cached = wp_cache_get( $cache_key, self::CACHE_GROUP );
+			if ( false !== $cached ) {
+				return $cached;
+			}
 		}
 
 		$title = $term->name;
@@ -316,9 +327,30 @@ class Parsely_Integration {
 			'parsely-type'  => 'page',
 		);
 		$html = $this->build_parsely_html( $tags );
-		wp_cache_set( $cache_key, $html, self::CACHE_GROUP, self::CACHE_TTL );
+		if ( Cache_Keys::caching_enabled() ) {
+			wp_cache_set( $cache_key, $html, self::CACHE_GROUP, self::CACHE_TTL );
+		}
 
 		return $html;
+	}
+
+	/**
+	 * Clear cached Parse.ly tags for the front page.
+	 *
+	 * @return void
+	 */
+	public function clear_home_cache(): void {
+		wp_cache_delete( Cache_Keys::parsely_home(), self::CACHE_GROUP );
+	}
+
+	/**
+	 * Clear cached Parse.ly tags for a term archive.
+	 *
+	 * @param int $term_id Term ID.
+	 * @return void
+	 */
+	public static function clear_term_cache( int $term_id ): void {
+		wp_cache_delete( Cache_Keys::parsely_term( $term_id ), self::CACHE_GROUP );
 	}
 
 	/**

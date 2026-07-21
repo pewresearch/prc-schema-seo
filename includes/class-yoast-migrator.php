@@ -414,8 +414,8 @@ class Yoast_Migrator {
 			return $result;
 		}
 
-		// Clear caches.
-		wp_cache_delete( 'seo_data_' . $post_id, Metadata::CACHE_GROUP );
+		// Clear caches (seo_data, schema, meta_tags, contact).
+		( new Metadata( new Loader() ) )->clear_cache( $post_id );
 
 		$result['success'] = true;
 		$result['message'] = sprintf( 'Post ID %d migrated successfully.', $post_id );
@@ -503,8 +503,9 @@ class Yoast_Migrator {
 		}
 
 		// Clear caches.
-		wp_cache_delete( 'term_schema_' . $term_id, Generator::CACHE_GROUP );
+		wp_cache_delete( Cache_Keys::term_schema( (int) $term_id ), Generator::CACHE_GROUP );
 		Meta_Tags::clear_term_meta_tags_cache( $term_id );
+		Parsely_Integration::clear_term_cache( (int) $term_id );
 
 		$result['success'] = true;
 		$result['message'] = sprintf( 'Term ID %d migrated successfully.', $term_id );

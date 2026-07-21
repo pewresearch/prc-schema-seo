@@ -213,7 +213,8 @@ class Cache_Invalidator {
 		}
 
 		// Clear schema caches for the term itself.
-		wp_cache_delete( 'term_schema_' . $term_id, Generator::CACHE_GROUP );
+		wp_cache_delete( Cache_Keys::term_schema( (int) $term_id ), Generator::CACHE_GROUP );
 		Meta_Tags::clear_term_meta_tags_cache( $term_id );
+		Parsely_Integration::clear_term_cache( (int) $term_id );
 	}
 }
