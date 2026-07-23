@@ -100,11 +100,11 @@ echo "==> Fixtures written to ${OUT_DIR}/fixtures.json"
 
 if [[ -n "${POST_ID}" ]]; then
 	echo "==> CLI benchmark post=${POST_ID}"
-	vip_wp prc-seo benchmark --post="${POST_ID}" --iterations="${ITERATIONS}" > "${OUT_DIR}/cli-post.json" || true
+	vip_wp prc seo benchmark --post="${POST_ID}" --iterations="${ITERATIONS}" > "${OUT_DIR}/cli-post.json" || true
 fi
 if [[ -n "${TERM_ID}" ]]; then
 	echo "==> CLI benchmark term=${TERM_ID} taxonomy=${TAXONOMY}"
-	vip_wp prc-seo benchmark --term="${TERM_ID}" --taxonomy="${TAXONOMY}" --iterations="${ITERATIONS}" > "${OUT_DIR}/cli-term.json" || true
+	vip_wp prc seo benchmark --term="${TERM_ID}" --taxonomy="${TAXONOMY}" --iterations="${ITERATIONS}" > "${OUT_DIR}/cli-term.json" || true
 fi
 
 http_timing() {

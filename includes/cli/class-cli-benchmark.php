@@ -6,9 +6,9 @@
  * schema generation and meta tag rendering, including memory usage.
  *
  * Usage:
- *   wp prc-seo benchmark --post=123
- *   wp prc-seo benchmark --term=55 --taxonomy=category
- *   wp prc-seo benchmark --post=123 --iterations=3
+ *   wp prc seo benchmark --post=123
+ *   wp prc seo benchmark --term=55 --taxonomy=category
+ *   wp prc seo benchmark --post=123 --iterations=3
  *
  * @package PRC\Platform\Schema_SEO
  */
@@ -52,9 +52,9 @@ class CLI_Benchmark extends WPCOM_VIP_CLI_Command {
 	 *
 	 * ## EXAMPLES
 	 *
-	 *     wp prc-seo benchmark --post=123
-	 *     wp prc-seo benchmark --term=55 --taxonomy=category
-	 *     wp prc-seo benchmark --post=123 --iterations=5
+	 *     wp prc seo benchmark --post=123
+	 *     wp prc seo benchmark --term=55 --taxonomy=category
+	 *     wp prc seo benchmark --post=123 --iterations=5
 	 *
 	 * @param array $args  Positional args.
 	 * @param array $assoc Assoc args.

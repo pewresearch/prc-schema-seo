@@ -274,6 +274,16 @@ class Cache_Keys {
 	}
 
 	/**
+	 * Parse.ly post type archive fragment cache key.
+	 *
+	 * @param string $post_type Post type slug.
+	 * @return string
+	 */
+	public static function parsely_post_type_archive( string $post_type ): string {
+		return 'parsely_tags_post_type_archive_' . $post_type;
+	}
+
+	/**
 	 * Post-level keys that share GROUP and are cleared together.
 	 *
 	 * @param int $post_id Post ID.

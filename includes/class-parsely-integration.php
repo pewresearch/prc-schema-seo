@@ -5,10 +5,10 @@
  * Wires PRC SEO data into the official wp-parsely metadata pipeline via filters.
  * JSON-LD vs repeated meta tags follows the Parse.ly plugin settings in WP Admin.
  *
- * On the front page, term archives, and RLS template singular requests, PRC
- * emits its own parsely-* meta tags from wp_head priority 3 and suppresses
- * wp-parsely's renderer by returning an empty array from the per-request
- * `wp_parsely_metadata` filter. The renderer bails at its
+ * On the front page, term archives, post type archives, and RLS template
+ * singular requests, PRC emits its own parsely-* meta tags from wp_head
+ * priority 3 and suppresses wp-parsely's renderer by returning an empty array
+ * from the per-request `wp_parsely_metadata` filter. The renderer bails at its
  * `! isset( $metadata['headline'] )` guard, avoiding duplicate
  * <meta name="parsely-*"> output (notably parsely-title) when wp-parsely is
  * configured for `repeated_metas`.
@@ -67,19 +67,40 @@ class Parsely_Integration {
 	 */
 	public function init(): void {
 		$this->loader->add_filter( 'wpvip_parsely_load_mu', $this, 'enable_parsely_mu_on_local' );
+		$this->loader->add_filter( 'wp_parsely_managed_options', $this, 'force_https_canonicals' );
 		$this->loader->add_filter( 'wp_parsely_metadata', $this, 'filter_wp_parsely_metadata', 10, 3 );
 		$this->loader->add_filter( 'wp_parsely_permalink', $this, 'filter_wp_parsely_permalink', 10, 3 );
 
-		// PRC owns parsely-* output on the front page and term archives.
+		// PRC owns parsely-* output on the front page, term archives, and CPT archives.
 		// wp-parsely's own renderer is suppressed for these contexts via
 		// filter_wp_parsely_metadata() returning an empty array (see notes there).
 		$this->loader->add_action( 'wp_head', $this, 'output_term_parsely_tags', 3 );
 		$this->loader->add_action( 'wp_head', $this, 'output_home_parsely_tags', 3 );
+		$this->loader->add_action( 'wp_head', $this, 'output_post_type_archive_parsely_tags', 3 );
 
-		// Invalidate home Parse.ly fragments when site identity URLs change.
+		// Invalidate home / CPT-archive Parse.ly fragments when site identity URLs change.
 		$this->loader->add_action( 'update_option_blogname', $this, 'clear_home_cache' );
-		$this->loader->add_action( 'update_option_home', $this, 'clear_home_cache' );
-		$this->loader->add_action( 'update_option_siteurl', $this, 'clear_home_cache' );
+		$this->loader->add_action( 'update_option_home', $this, 'clear_home_and_archive_caches' );
+		$this->loader->add_action( 'update_option_siteurl', $this, 'clear_home_and_archive_caches' );
+	}
+
+	/**
+	 * Force https Parse.ly canonical URLs site-wide.
+	 *
+	 * wp-parsely defaults `force_https_canonicals` to false, which rewrites
+	 * non-post `get_current_url()` results from https → http. Pew Research
+	 * Center is https-only; manage the option so CPT archives and other
+	 * non-post contexts never emit http parsely-link values.
+	 *
+	 * @param array|false $managed_options Existing managed options.
+	 * @return array
+	 */
+	public function force_https_canonicals( $managed_options ) {
+		if ( ! is_array( $managed_options ) ) {
+			$managed_options = array();
+		}
+		$managed_options['force_https_canonicals'] = true;
+		return $managed_options;
 	}
 
 	/**
@@ -98,9 +119,9 @@ class Parsely_Integration {
 	 * Map PRC SEO and platform data onto wp-parsely's metadata array.
 	 *
 	 * On contexts where PRC emits its own parsely-* tags (front page, term
-	 * archives, RLS template post type), this returns an empty array. That
-	 * causes wp-parsely's Metadata_Renderer::render_metadata_on_head() to
-	 * bail at its `! isset( $metadata['headline'] )` guard, suppressing
+	 * archives, post type archives, RLS template post type), this returns an
+	 * empty array. That causes wp-parsely's Metadata_Renderer::render_metadata_on_head()
+	 * to bail at its `! isset( $metadata['headline'] )` guard, suppressing
 	 * duplicate <meta name="parsely-*"> output regardless of whether the
 	 * site is configured for `json_ld` or `repeated_metas`.
 	 *
@@ -121,7 +142,7 @@ class Parsely_Integration {
 
 		// Suppress wp-parsely's render on contexts where PRC emits its own tags.
 		if ( did_action( 'wp' ) ) {
-			if ( is_front_page() || is_category() || is_tag() || is_tax() ) {
+			if ( is_front_page() || is_category() || is_tag() || is_tax() || is_post_type_archive() ) {
 				return array();
 			}
 			if ( is_singular() && defined( 'PRC_RLS_TEMPLATE_POST_TYPE' ) ) {
@@ -155,7 +176,7 @@ class Parsely_Integration {
 		$canonical     = ! empty( $data_resolved['canonical_url'] ) ? $data_resolved['canonical_url'] : get_permalink( $post_id );
 		$canonical     = apply_filters( 'prc_schema_seo_canonical_url', $canonical, $post_id, $data_resolved );
 		if ( is_string( $canonical ) && '' !== $canonical ) {
-			$metadata['url'] = $canonical;
+			$metadata['url'] = set_url_scheme( $canonical, 'https' );
 		}
 
 		if ( post_type_supports( $post_type, 'thumbnail' ) ) {
@@ -235,7 +256,11 @@ class Parsely_Integration {
 		$canonical = ! empty( $data['canonical_url'] ) ? $data['canonical_url'] : get_permalink( $post_id );
 		$canonical = apply_filters( 'prc_schema_seo_canonical_url', $canonical, $post_id, $data );
 
-		return is_string( $canonical ) && '' !== $canonical ? $canonical : $permalink;
+		if ( is_string( $canonical ) && '' !== $canonical ) {
+			return set_url_scheme( $canonical, 'https' );
+		}
+
+		return is_string( $permalink ) ? set_url_scheme( $permalink, 'https' ) : $permalink;
 	}
 
 	/**
@@ -284,7 +309,7 @@ class Parsely_Integration {
 
 		$tags = array(
 			'parsely-title' => get_bloginfo( 'name' ),
-			'parsely-link'  => get_bloginfo( 'url' ),
+			'parsely-link'  => set_url_scheme( (string) get_bloginfo( 'url' ), 'https' ),
 			'parsely-type'  => 'index',
 		);
 		$html = $this->build_parsely_html( $tags );
@@ -292,6 +317,86 @@ class Parsely_Integration {
 			wp_cache_set( $cache_key, $html, self::CACHE_GROUP, self::CACHE_TTL );
 		}
 		echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in build_parsely_html.
+	}
+
+	/**
+	 * Output Parsely meta tags for post type archives (e.g. /datasets/).
+	 *
+	 * wp-parsely's Category_Builder uses the post type slug as headline and
+	 * `get_current_url()` for the link; with the plugin default
+	 * `force_https_canonicals=false` that becomes an http:// URL. PRC owns
+	 * this context so the label and https archive link are correct.
+	 *
+	 * @return void
+	 */
+	public function output_post_type_archive_parsely_tags() {
+		if ( is_singular() || is_front_page() ) {
+			return;
+		}
+		if ( ! is_post_type_archive() ) {
+			return;
+		}
+
+		$post_type = get_query_var( 'post_type' );
+		$post_type = is_array( $post_type ) ? reset( $post_type ) : $post_type;
+		if ( ! is_string( $post_type ) || '' === $post_type ) {
+			return;
+		}
+
+		// RLS routes resolve as post type archives but own their own Parse.ly
+		// tags via prc-religious-landscape-study (SEO::add_parsely_tags).
+		if ( defined( 'PRC_RLS_TEMPLATE_POST_TYPE' ) && PRC_RLS_TEMPLATE_POST_TYPE === $post_type ) {
+			return;
+		}
+
+		$html = $this->warm_post_type_archive_cache( $post_type );
+		if ( '' === $html ) {
+			return;
+		}
+
+		echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in build_parsely_html.
+	}
+
+	/**
+	 * Build (and optionally cache) Parse.ly meta tags for a post type archive.
+	 *
+	 * @param string $post_type Post type slug.
+	 * @return string Parsely meta tags HTML.
+	 */
+	public function warm_post_type_archive_cache( string $post_type ): string {
+		$post_type_obj = get_post_type_object( $post_type );
+		if ( ! $post_type_obj ) {
+			return '';
+		}
+
+		$cache_key = Cache_Keys::parsely_post_type_archive( $post_type );
+		if ( Cache_Keys::caching_enabled() ) {
+			$cached = wp_cache_get( $cache_key, self::CACHE_GROUP );
+			if ( false !== $cached ) {
+				return $cached;
+			}
+		}
+
+		$title = ! empty( $post_type_obj->labels->name )
+			? (string) $post_type_obj->labels->name
+			: $post_type;
+		$link  = get_post_type_archive_link( $post_type );
+		if ( ! is_string( $link ) || '' === $link ) {
+			$link = home_url( '/' );
+		}
+		$link = set_url_scheme( $link, 'https' );
+
+		$tags = array(
+			'parsely-title' => $title,
+			'parsely-link'  => $link,
+			'parsely-type'  => 'index',
+		);
+		$html = $this->build_parsely_html( $tags );
+		if ( Cache_Keys::caching_enabled() ) {
+			wp_cache_set( $cache_key, $html, self::CACHE_GROUP, self::CACHE_TTL );
+		}
+
+		return $html;
 	}
 
 	/**
@@ -319,6 +424,8 @@ class Parsely_Integration {
 		$link  = get_term_link( $term );
 		if ( is_wp_error( $link ) ) {
 			$link = '';
+		} elseif ( is_string( $link ) && '' !== $link ) {
+			$link = set_url_scheme( $link, 'https' );
 		}
 
 		$tags = array(
@@ -344,6 +451,30 @@ class Parsely_Integration {
 	}
 
 	/**
+	 * Clear home Parse.ly cache and public post type archive fragments.
+	 *
+	 * Fired when `home` / `siteurl` change so archive parsely-link values
+	 * pick up the new origin on the next request.
+	 *
+	 * @return void
+	 */
+	public function clear_home_and_archive_caches(): void {
+		$this->clear_home_cache();
+		$post_types = get_post_types(
+			array(
+				'public'      => true,
+				'has_archive' => true,
+			),
+			'names'
+		);
+		foreach ( $post_types as $post_type ) {
+			if ( is_string( $post_type ) ) {
+				self::clear_post_type_archive_cache( $post_type );
+			}
+		}
+	}
+
+	/**
 	 * Clear cached Parse.ly tags for a term archive.
 	 *
 	 * @param int $term_id Term ID.
@@ -351,6 +482,16 @@ class Parsely_Integration {
 	 */
 	public static function clear_term_cache( int $term_id ): void {
 		wp_cache_delete( Cache_Keys::parsely_term( $term_id ), self::CACHE_GROUP );
+	}
+
+	/**
+	 * Clear cached Parse.ly tags for a post type archive.
+	 *
+	 * @param string $post_type Post type slug.
+	 * @return void
+	 */
+	public static function clear_post_type_archive_cache( string $post_type ): void {
+		wp_cache_delete( Cache_Keys::parsely_post_type_archive( $post_type ), self::CACHE_GROUP );
 	}
 
 	/**

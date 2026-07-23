@@ -94,22 +94,22 @@ function run_prc_schema_seo() {
 	$plugin = new Plugin();
 	$plugin->run();
 
-	// Register all WP-CLI commands under the 'prc-seo' namespace.
+	// Register all WP-CLI commands under the 'prc seo' namespace.
 	if ( defined( 'WP_CLI' ) && class_exists( '\WP_CLI' ) ) {
-		// Benchmark command: wp prc-seo benchmark --post=ID
+		// Benchmark command: wp prc seo benchmark --post=ID
 		if ( class_exists( '\PRC\Platform\Schema_SEO\CLI_Benchmark' ) ) {
-			\WP_CLI::add_command( 'prc-seo benchmark', array( new CLI_Benchmark(), 'run' ) );
+			\WP_CLI::add_command( 'prc seo benchmark', array( new CLI_Benchmark(), 'run' ) );
 		}
 
-		// Migration commands: wp prc-seo migrate-post, migrate-posts, migrate-term, migrate-terms, migration-status, preview-yoast, clean-yoast-placeholders, clean-yoast-options
+		// Migration commands: wp prc seo migrate-post, migrate-posts, migrate-term, migrate-terms, migration-status, preview-yoast, clean-yoast-placeholders, clean-yoast-options
 		if ( class_exists( '\PRC\Platform\Schema_SEO\CLI_Migration' ) ) {
-			\WP_CLI::add_command( 'prc-seo', new CLI_Migration() );
+			\WP_CLI::add_command( 'prc seo', new CLI_Migration() );
 		}
 
-		// Compare commands: wp prc-seo compare, compare-batch
+		// Compare commands: wp prc seo compare, compare-batch
 		if ( class_exists( '\PRC\Platform\Schema_SEO\CLI_Compare' ) ) {
-			\WP_CLI::add_command( 'prc-seo compare', array( new CLI_Compare(), 'compare' ) );
-			\WP_CLI::add_command( 'prc-seo compare-batch', array( new CLI_Compare(), 'compare_batch' ) );
+			\WP_CLI::add_command( 'prc seo compare', array( new CLI_Compare(), 'compare' ) );
+			\WP_CLI::add_command( 'prc seo compare-batch', array( new CLI_Compare(), 'compare_batch' ) );
 		}
 	}
 }

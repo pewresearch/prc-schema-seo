@@ -26,13 +26,13 @@ if ( ! class_exists( 'WPCOM_VIP_CLI_Command' ) ) {
  * ## EXAMPLES
  *
  *     # Compare SEO output for a post
- *     wp prc-seo compare 123
+ *     wp prc seo compare 123
  *
  *     # Compare with JSON output
- *     wp prc-seo compare 123 --format=json
+ *     wp prc seo compare 123 --format=json
  *
  *     # Compare and show only differences
- *     wp prc-seo compare 123 --diff-only
+ *     wp prc seo compare 123 --diff-only
  */
 class CLI_Compare extends WPCOM_VIP_CLI_Command {
 
@@ -105,16 +105,16 @@ class CLI_Compare extends WPCOM_VIP_CLI_Command {
 	 * ## EXAMPLES
 	 *
 	 *     # Compare post ID 123
-	 *     wp prc-seo compare 123
+	 *     wp prc seo compare 123
 	 *
 	 *     # Compare with full output including raw HTML
-	 *     wp prc-seo compare 123 --format=full
+	 *     wp prc seo compare 123 --format=full
 	 *
 	 *     # Only show differences
-	 *     wp prc-seo compare 123 --diff-only
+	 *     wp prc seo compare 123 --diff-only
 	 *
 	 *     # Compare against a different production domain
-	 *     wp prc-seo compare 123 --production-domain=example.org
+	 *     wp prc seo compare 123 --production-domain=example.org
 	 *
 	 * @param array $args       Positional arguments.
 	 * @param array $assoc_args Associative arguments.
@@ -208,13 +208,13 @@ class CLI_Compare extends WPCOM_VIP_CLI_Command {
 	 * ## EXAMPLES
 	 *
 	 *     # Compare 10 recent posts
-	 *     wp prc-seo compare-batch
+	 *     wp prc seo compare-batch
 	 *
 	 *     # Compare 50 pages
-	 *     wp prc-seo compare-batch --post-type=page --limit=50
+	 *     wp prc seo compare-batch --post-type=page --limit=50
 	 *
 	 *     # Export comparison as JSON
-	 *     wp prc-seo compare-batch --format=json > comparison.json
+	 *     wp prc seo compare-batch --format=json > comparison.json
 	 *
 	 * @subcommand compare-batch
 	 * @synopsis [--post-type=<type>] [--limit=<limit>] [--production-domain=<domain>] [--format=<format>]

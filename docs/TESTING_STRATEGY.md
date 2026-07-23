@@ -59,53 +59,53 @@ The plugin provides several WP-CLI commands for testing and validation:
 
 ```bash
 # Compare single post SEO output against production
-wp prc-seo compare <post_id>
-wp prc-seo compare <post_id> --format=json
-wp prc-seo compare <post_id> --diff-only
-wp prc-seo compare <post_id> --format=full
+wp prc seo compare <post_id>
+wp prc seo compare <post_id> --format=json
+wp prc seo compare <post_id> --diff-only
+wp prc seo compare <post_id> --format=full
 
 # Batch compare multiple posts
-wp prc-seo compare-batch
-wp prc-seo compare-batch --post-type=post --limit=100
-wp prc-seo compare-batch --format=json > comparison-results.json
+wp prc seo compare-batch
+wp prc seo compare-batch --post-type=post --limit=100
+wp prc seo compare-batch --format=json > comparison-results.json
 ```
 
 ### Migration Commands
 
 ```bash
 # Check migration status
-wp prc-seo migration-status
+wp prc seo migration-status
 
 # Preview Yoast data without migrating
-wp prc-seo preview-yoast <post_id>
+wp prc seo preview-yoast <post_id>
 
 # Migrate with dry-run (no database changes)
-wp prc-seo migrate-post <post_id> --dry-run
-wp prc-seo migrate-posts --dry-run --limit=100
+wp prc seo migrate-post <post_id> --dry-run
+wp prc seo migrate-posts --dry-run --limit=100
 
 # Execute migration
-wp prc-seo migrate-post <post_id>
-wp prc-seo migrate-posts --post-type=post --batch-size=100
-wp prc-seo migrate-term <term_id> --taxonomy=category
-wp prc-seo migrate-terms --taxonomy=category
+wp prc seo migrate-post <post_id>
+wp prc seo migrate-posts --post-type=post --batch-size=100
+wp prc seo migrate-term <term_id> --taxonomy=category
+wp prc seo migrate-terms --taxonomy=category
 
 # Clean leftover Yoast placeholders from migrated PRC SEO data
-wp prc-seo clean-yoast-placeholders
-wp prc-seo clean-yoast-placeholders --dry-run=false --include-terms
+wp prc seo clean-yoast-placeholders
+wp prc seo clean-yoast-placeholders --dry-run=false --include-terms
 
 # Delete leftover Yoast wp_options rows (after migration is complete)
-wp prc-seo clean-yoast-options
-wp prc-seo clean-yoast-options --dry-run=false --known-only
-wp prc-seo clean-yoast-options --dry-run=false
+wp prc seo clean-yoast-options
+wp prc seo clean-yoast-options --dry-run=false --known-only
+wp prc seo clean-yoast-options --dry-run=false
 ```
 
 ### Performance Commands
 
 ```bash
 # Benchmark schema/meta generation
-wp prc-seo benchmark --post=<post_id>
-wp prc-seo benchmark --post=<post_id> --iterations=5
-wp prc-seo benchmark --term=<term_id> --taxonomy=category
+wp prc seo benchmark --post=<post_id>
+wp prc seo benchmark --post=<post_id> --iterations=5
+wp prc seo benchmark --term=<term_id> --taxonomy=category
 ```
 
 ---
@@ -148,7 +148,7 @@ wp prc-seo benchmark --term=<term_id> --taxonomy=category
 
 ```bash
 # Get overview of migration scope
-wp prc-seo migration-status
+wp prc seo migration-status
 
 # Expected output shows counts of:
 # - Posts with Yoast meta
@@ -160,11 +160,11 @@ wp prc-seo migration-status
 
 ```bash
 # Test migration on sample posts without saving
-wp prc-seo migrate-posts --dry-run --limit=50
+wp prc seo migrate-posts --dry-run --limit=50
 
 # Review specific high-traffic posts
-wp prc-seo preview-yoast <high-traffic-post-id>
-wp prc-seo migrate-post <high-traffic-post-id> --dry-run
+wp prc seo preview-yoast <high-traffic-post-id>
+wp prc seo migrate-post <high-traffic-post-id> --dry-run
 ```
 
 #### 1.3 Data Field Mapping Verification
@@ -187,17 +187,17 @@ Test these specific scenarios:
 ```bash
 # Posts with custom canonical URLs
 wp db query "SELECT post_id FROM wp_postmeta WHERE meta_key = '_yoast_wpseo_canonical' AND meta_value != ''" --skip-column-names | while read id; do
-  wp prc-seo migrate-post $id --dry-run
+  wp prc seo migrate-post $id --dry-run
 done
 
 # Posts marked as noindex
 wp db query "SELECT post_id FROM wp_postmeta WHERE meta_key = '_yoast_wpseo_meta-robots-noindex' AND meta_value = '1'" --skip-column-names | head -10 | while read id; do
-  wp prc-seo compare $id --diff-only
+  wp prc seo compare $id --diff-only
 done
 
 # Posts with custom OG images
 wp db query "SELECT post_id FROM wp_postmeta WHERE meta_key = '_yoast_wpseo_opengraph-image-id'" --skip-column-names | head -10 | while read id; do
-  wp prc-seo preview-yoast $id
+  wp prc seo preview-yoast $id
 done
 ```
 
@@ -225,10 +225,10 @@ done
 
 ```bash
 # Compare high-traffic posts
-wp prc-seo compare <post_id> --format=full
+wp prc seo compare <post_id> --format=full
 
 # Review comparison summary
-wp prc-seo compare <post_id>
+wp prc seo compare <post_id>
 # Look for:
 # - Matching: should be high
 # - Different: should be zero or explained
@@ -240,10 +240,10 @@ wp prc-seo compare <post_id>
 
 ```bash
 # Compare recent posts
-wp prc-seo compare-batch --post-type=post --limit=100 --format=json > comparison-posts.json
+wp prc seo compare-batch --post-type=post --limit=100 --format=json > comparison-posts.json
 
 # Compare pages
-wp prc-seo compare-batch --post-type=page --limit=50 --format=json > comparison-pages.json
+wp prc seo compare-batch --post-type=page --limit=50 --format=json > comparison-pages.json
 
 # Analyze results
 cat comparison-posts.json | jq '.summary'
@@ -273,13 +273,13 @@ Test these critical pages manually:
 
 ```bash
 # Homepage
-wp prc-seo compare <homepage-id> --format=full
+wp prc seo compare <homepage-id> --format=full
 
 # Category archives (use term-specific commands if available)
 # These require manual front-end verification
 
 # Author/staff pages
-wp prc-seo compare <staff-page-id> --format=full
+wp prc seo compare <staff-page-id> --format=full
 
 # Search results page (manual verification needed)
 ```
@@ -309,7 +309,7 @@ Compare schema types between local and production:
 
 ```bash
 # Full comparison shows schema types
-wp prc-seo compare <post_id> --format=full
+wp prc seo compare <post_id> --format=full
 
 # Look for schema types in output:
 # Local types: Article, Organization, WebSite, WebPage, BreadcrumbList
@@ -323,7 +323,7 @@ For sample posts, test schema validity:
 1. Generate local schema output:
 
 ```bash
-wp prc-seo compare <post_id> --format=json | jq '.local.schema' > local-schema.json
+wp prc seo compare <post_id> --format=json | jq '.local.schema' > local-schema.json
 ```
 
 2. Test in Google Rich Results Test: https://search.google.com/test/rich-results
@@ -353,7 +353,7 @@ POST_IDS=(123 456 789 1011)  # Replace with actual high-traffic post IDs
 
 for id in "${POST_IDS[@]}"; do
   echo "=== Post ID: $id ==="
-  wp prc-seo compare $id --format=json | jq '{
+  wp prc seo compare $id --format=json | jq '{
     post_id: .post_id,
     local_schema_types: .local.schema["@graph"] | map(.["@type"]) | sort,
     production_schema_types: .production.schema["@graph"] | map(.["@type"]) | sort,
@@ -387,7 +387,7 @@ done
 
 ```bash
 # Benchmark typical post
-wp prc-seo benchmark --post=<post_id> --iterations=5
+wp prc seo benchmark --post=<post_id> --iterations=5
 
 # Expected output (JSON):
 # {
@@ -411,7 +411,7 @@ wp prc-seo benchmark --post=<post_id> --iterations=5
 
 ```bash
 # Benchmark category page
-wp prc-seo benchmark --term=<category_id> --taxonomy=category --iterations=5
+wp prc seo benchmark --term=<category_id> --taxonomy=category --iterations=5
 ```
 
 #### 4.3 Heavy Content Testing
@@ -423,7 +423,7 @@ Test posts with many terms to validate worst-case performance:
 wp db query "SELECT object_id, COUNT(*) as cnt FROM wp_term_relationships tr JOIN wp_term_taxonomy tt ON tr.term_taxonomy_id = tt.term_taxonomy_id WHERE tt.taxonomy = 'category' GROUP BY object_id ORDER BY cnt DESC LIMIT 5"
 
 # Benchmark heavy posts
-wp prc-seo benchmark --post=<heavy_post_id> --iterations=3
+wp prc seo benchmark --post=<heavy_post_id> --iterations=3
 ```
 
 #### 4.4 Performance Acceptance Thresholds
@@ -730,10 +730,10 @@ npm run test -w @prc/schema-seo
 
     ```bash
     # Final migration status check
-    wp prc-seo migration-status
+    wp prc seo migration-status
 
     # Run final batch comparison
-    wp prc-seo compare-batch --limit=500 --format=json > pre-deploy-comparison.json
+    wp prc seo compare-batch --limit=500 --format=json > pre-deploy-comparison.json
     ```
 
 2. **Deploy**
@@ -744,10 +744,10 @@ npm run test -w @prc/schema-seo
 
     ```bash
     # Verify homepage
-    wp prc-seo compare <homepage_id>
+    wp prc seo compare <homepage_id>
 
     # Verify recent posts
-    wp prc-seo compare-batch --limit=20
+    wp prc seo compare-batch --limit=20
     ```
 
 4. **Monitoring Period**
@@ -815,7 +815,7 @@ Document and investigate:
 
 - [ ] Backup database
 - [ ] Document current Yoast settings
-- [ ] Run `wp prc-seo migration-status`
+- [ ] Run `wp prc seo migration-status`
 - [ ] Identify high-traffic posts for priority testing
 - [ ] Create comparison baseline with `compare-batch`
 
@@ -862,26 +862,26 @@ Document and investigate:
 
 ```bash
 # Quick health check
-wp prc-seo compare-batch --limit=10
+wp prc seo compare-batch --limit=10
 
 # Check migration status
-wp prc-seo migration-status
+wp prc seo migration-status
 
 # Benchmark performance
-wp prc-seo benchmark --post=$(wp post list --post_type=post --posts_per_page=1 --field=ID)
+wp prc seo benchmark --post=$(wp post list --post_type=post --posts_per_page=1 --field=ID)
 ```
 
 ### Troubleshooting Commands
 
 ```bash
 # Debug specific post
-wp prc-seo compare <post_id> --format=full
+wp prc seo compare <post_id> --format=full
 
 # Check raw SEO data
 wp post meta get <post_id> _prc_seo_data
 
 # Preview what Yoast had
-wp prc-seo preview-yoast <post_id>
+wp prc seo preview-yoast <post_id>
 
 # Force cache clear
 wp cache delete schema_<post_id> prc_schema_seo_output
@@ -893,11 +893,11 @@ wp cache delete meta_tags_<post_id> prc_schema_seo_output
 ```bash
 # Compare all published posts of a type
 wp post list --post_type=post --post_status=publish --field=ID | while read id; do
-  wp prc-seo compare $id --diff-only 2>/dev/null
+  wp prc seo compare $id --diff-only 2>/dev/null
 done
 
 # Find posts with differences
-wp prc-seo compare-batch --limit=1000 --format=json | jq '.results[] | select(.status == "partial") | {id: .post_id, title: .post_title}'
+wp prc seo compare-batch --limit=1000 --format=json | jq '.results[] | select(.status == "partial") | {id: .post_id, title: .post_title}'
 ```
 
 ---

@@ -25,13 +25,13 @@ if ( ! class_exists( 'WPCOM_VIP_CLI_Command' ) ) {
  * ## EXAMPLES
  *
  *     # Migrate a single post (preview)
- *     wp prc-seo migrate-post 123
+ *     wp prc seo migrate-post 123
  *
  *     # Migrate all posts for real
- *     wp prc-seo migrate-posts --dry-run=false
+ *     wp prc seo migrate-posts --dry-run=false
  *
  *     # Show migration status
- *     wp prc-seo migration-status
+ *     wp prc seo migration-status
  */
 class CLI_Migration extends WPCOM_VIP_CLI_Command {
 
@@ -133,10 +133,10 @@ class CLI_Migration extends WPCOM_VIP_CLI_Command {
 	 * ## EXAMPLES
 	 *
 	 *     # Preview migration for post ID 123
-	 *     wp prc-seo migrate-post 123
+	 *     wp prc seo migrate-post 123
 	 *
 	 *     # Migrate post ID 123 for real
-	 *     wp prc-seo migrate-post 123 --dry-run=false
+	 *     wp prc seo migrate-post 123 --dry-run=false
 	 *
 	 * @param array $args       Positional arguments.
 	 * @param array $assoc_args Associative arguments.
@@ -205,19 +205,19 @@ class CLI_Migration extends WPCOM_VIP_CLI_Command {
 	 * ## EXAMPLES
 	 *
 	 *     # Preview migration for all posts (dry-run by default)
-	 *     wp prc-seo migrate-posts
+	 *     wp prc seo migrate-posts
 	 *
 	 *     # Migrate all posts for real
-	 *     wp prc-seo migrate-posts --dry-run=false
+	 *     wp prc seo migrate-posts --dry-run=false
 	 *
 	 *     # Migrate only pages
-	 *     wp prc-seo migrate-posts --post-type=page --dry-run=false
+	 *     wp prc seo migrate-posts --post-type=page --dry-run=false
 	 *
 	 *     # Resume after interruption at post ID 5000
-	 *     wp prc-seo migrate-posts --dry-run=false --start-id=5000
+	 *     wp prc seo migrate-posts --dry-run=false --start-id=5000
 	 *
 	 *     # Force re-migration of all posts
-	 *     wp prc-seo migrate-posts --no-skip-existing --dry-run=false
+	 *     wp prc seo migrate-posts --no-skip-existing --dry-run=false
 	 *
 	 * @subcommand migrate-posts
 	 * @synopsis [--post-type=<type>] [--batch-size=<size>] [--dry-run=<bool>] [--skip-existing] [--no-skip-existing] [--start-id=<id>] [--no-warm-cache]
@@ -372,10 +372,10 @@ class CLI_Migration extends WPCOM_VIP_CLI_Command {
 	 * ## EXAMPLES
 	 *
 	 *     # Preview migration for category term ID 55
-	 *     wp prc-seo migrate-term 55 --taxonomy=category
+	 *     wp prc seo migrate-term 55 --taxonomy=category
 	 *
 	 *     # Migrate term 55 for real
-	 *     wp prc-seo migrate-term 55 --taxonomy=category --dry-run=false
+	 *     wp prc seo migrate-term 55 --taxonomy=category --dry-run=false
 	 *
 	 * @param array $args       Positional arguments.
 	 * @param array $assoc_args Associative arguments.
@@ -444,16 +444,16 @@ class CLI_Migration extends WPCOM_VIP_CLI_Command {
 	 * ## EXAMPLES
 	 *
 	 *     # Preview migration for all terms (dry-run by default)
-	 *     wp prc-seo migrate-terms
+	 *     wp prc seo migrate-terms
 	 *
 	 *     # Migrate all terms for real
-	 *     wp prc-seo migrate-terms --dry-run=false
+	 *     wp prc seo migrate-terms --dry-run=false
 	 *
 	 *     # Migrate only category terms
-	 *     wp prc-seo migrate-terms --taxonomy=category --dry-run=false
+	 *     wp prc seo migrate-terms --taxonomy=category --dry-run=false
 	 *
 	 *     # Force re-migration of all terms
-	 *     wp prc-seo migrate-terms --no-skip-existing --dry-run=false
+	 *     wp prc seo migrate-terms --no-skip-existing --dry-run=false
 	 *
 	 * @subcommand migrate-terms
 	 * @synopsis [--taxonomy=<taxonomy>] [--dry-run=<bool>] [--skip-existing] [--no-skip-existing] [--no-warm-cache]
@@ -570,10 +570,10 @@ class CLI_Migration extends WPCOM_VIP_CLI_Command {
 	 * ## EXAMPLES
 	 *
 	 *     # Show migration status
-	 *     wp prc-seo migration-status
+	 *     wp prc seo migration-status
 	 *
 	 *     # Show status as JSON
-	 *     wp prc-seo migration-status --format=json
+	 *     wp prc seo migration-status --format=json
 	 *
 	 * @param array $args       Positional arguments.
 	 * @param array $assoc_args Associative arguments.
@@ -611,12 +611,12 @@ class CLI_Migration extends WPCOM_VIP_CLI_Command {
 			WP_CLI::warning( sprintf( 'There are %d items pending migration.', $total_pending ) );
 			WP_CLI::line( '' );
 			WP_CLI::line( 'To migrate all posts:' );
-			WP_CLI::line( '  wp prc-seo migrate-posts              (preview — dry-run by default)' );
-			WP_CLI::line( '  wp prc-seo migrate-posts --dry-run=false  (execute)' );
+			WP_CLI::line( '  wp prc seo migrate-posts              (preview — dry-run by default)' );
+			WP_CLI::line( '  wp prc seo migrate-posts --dry-run=false  (execute)' );
 			WP_CLI::line( '' );
 			WP_CLI::line( 'To migrate all terms:' );
-			WP_CLI::line( '  wp prc-seo migrate-terms              (preview — dry-run by default)' );
-			WP_CLI::line( '  wp prc-seo migrate-terms --dry-run=false  (execute)' );
+			WP_CLI::line( '  wp prc seo migrate-terms              (preview — dry-run by default)' );
+			WP_CLI::line( '  wp prc seo migrate-terms --dry-run=false  (execute)' );
 		} else {
 			WP_CLI::success( 'All Yoast SEO data has been migrated to PRC Schema SEO format.' );
 		}
@@ -633,7 +633,7 @@ class CLI_Migration extends WPCOM_VIP_CLI_Command {
 	 * ## EXAMPLES
 	 *
 	 *     # Preview Yoast data for post ID 123
-	 *     wp prc-seo preview-yoast 123
+	 *     wp prc seo preview-yoast 123
 	 *
 	 * @param array $args       Positional arguments.
 	 * @param array $assoc_args Associative arguments.
@@ -695,13 +695,13 @@ class CLI_Migration extends WPCOM_VIP_CLI_Command {
 	 * ## EXAMPLES
 	 *
 	 *     # Preview which posts have Yoast placeholders (dry-run)
-	 *     wp prc-seo clean-yoast-placeholders
+	 *     wp prc seo clean-yoast-placeholders
 	 *
 	 *     # Clean all posts for real
-	 *     wp prc-seo clean-yoast-placeholders --dry-run=false
+	 *     wp prc seo clean-yoast-placeholders --dry-run=false
 	 *
 	 *     # Clean posts and terms
-	 *     wp prc-seo clean-yoast-placeholders --dry-run=false --include-terms
+	 *     wp prc seo clean-yoast-placeholders --dry-run=false --include-terms
 	 *
 	 * @subcommand clean-yoast-placeholders
 	 * @synopsis [--post-type=<type>] [--batch-size=<size>] [--dry-run=<bool>] [--include-terms]
@@ -928,13 +928,13 @@ class CLI_Migration extends WPCOM_VIP_CLI_Command {
 	 * ## EXAMPLES
 	 *
 	 *     # Preview what would be deleted
-	 *     wp prc-seo clean-yoast-options
+	 *     wp prc seo clean-yoast-options
 	 *
 	 *     # Delete for real
-	 *     wp prc-seo clean-yoast-options --dry-run=false
+	 *     wp prc seo clean-yoast-options --dry-run=false
 	 *
 	 *     # Delete only the known SEO autoload options (excludes redirects)
-	 *     wp prc-seo clean-yoast-options --dry-run=false --known-only
+	 *     wp prc seo clean-yoast-options --dry-run=false --known-only
 	 *
 	 * @subcommand clean-yoast-options
 	 * @synopsis [--dry-run=<bool>] [--force] [--known-only]
@@ -955,7 +955,7 @@ class CLI_Migration extends WPCOM_VIP_CLI_Command {
 		if ( $total_pending > 0 && ! $force ) {
 			WP_CLI::error(
 				sprintf(
-					'Migration is incomplete (%d items pending). Run wp prc-seo migration-status, finish migration, or pass --force.',
+					'Migration is incomplete (%d items pending). Run wp prc seo migration-status, finish migration, or pass --force.',
 					$total_pending
 				)
 			);
