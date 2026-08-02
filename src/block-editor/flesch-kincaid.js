@@ -29,13 +29,39 @@ function countSyllables(word) {
 }
 
 /**
- * Strip HTML tags from a string.
+ * Decode a single HTML entity to a Unicode character.
+ *
+ * @param {string} entity Entity including surrounding & and ;.
+ * @return {string} Decoded character(s), or the original entity on failure.
+ */
+function decodeHtmlEntity(entity) {
+	const textarea = document.createElement('textarea');
+	textarea.innerHTML = entity;
+	return textarea.value;
+}
+
+/**
+ * Strip HTML tags and decode entities so the editor matches PHP
+ * Reading_Score::calculate() preprocessing.
+ *
+ * Contract: strip tags → decode entities to Unicode → collapse whitespace.
  *
  * @param {string} html
- * @return {string} The string with HTML tags stripped.
+ * @return {string} Plain text ready for word/sentence counting.
  */
 function stripHtml(html) {
-	return html.replace(/<[^>]*>/g, ' ').replace(/&[a-z]+;/gi, ' ');
+	// Remove tags without injecting spaces — matches PHP strip_tags()/wp_strip_all_tags().
+	const noScripts = html.replace(
+		/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi,
+		' '
+	);
+	const noTags = noScripts.replace(/<[^>]*>/g, '');
+	// Match named and numeric entities (e.g. &rsquo;, &#8217;, &#x2019;).
+	const decoded = noTags.replace(
+		/&(#(?:x[0-9a-f]+|\d+)|[a-z][a-z0-9]*);/gi,
+		decodeHtmlEntity
+	);
+	return decoded.replace(/\s+/g, ' ').trim();
 }
 
 /**

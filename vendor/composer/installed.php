@@ -3,7 +3,7 @@
         'name' => 'prc/schema-seo',
         'pretty_version' => 'dev-trunk',
         'version' => 'dev-trunk',
-        'reference' => '60e0f63163ba422e2200566d7b7ee190c48d0453',
+        'reference' => 'aa78293c0280431d4fb73fc6a89e7ccb00c852b6',
         'type' => 'wordpress-plugin',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -121,7 +121,7 @@
         'prc/schema-seo' => array(
             'pretty_version' => 'dev-trunk',
             'version' => 'dev-trunk',
-            'reference' => '60e0f63163ba422e2200566d7b7ee190c48d0453',
+            'reference' => 'aa78293c0280431d4fb73fc6a89e7ccb00c852b6',
             'type' => 'wordpress-plugin',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

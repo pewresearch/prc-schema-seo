@@ -63,7 +63,7 @@ class Reading_Score {
 					'properties' => array(
 						'post_id' => array(
 							'type'        => 'integer',
-							'description' => 'Post ID to analyze. Post content and excerpt are concatenated. Ignored when text is provided.',
+							'description' => 'Post ID to analyze. Uses post content only (same corpus as the editor Reading Score panel). Ignored when text is provided.',
 						),
 						'text'    => array(
 							'type'        => 'string',
@@ -93,7 +93,7 @@ class Reading_Score {
 						),
 						'word_count'     => array(
 							'type'        => 'integer',
-							'description' => 'Total word count of the analyzed text.',
+							'description' => 'Gutenberg editor document word count for the same corpus (matches Post sidebar "X words" via @wordpress/wordcount).',
 						),
 						'sentence_count' => array(
 							'type'        => 'integer',
@@ -127,7 +127,7 @@ class Reading_Score {
 				},
 				'meta'                => array(
 					'annotations'  => array(
-						'instructions' => 'Accepts a post_id or raw text and returns Flesch-Kincaid Reading Ease score, Grade Level, and supporting counts (words, sentences, syllables). For post_id analysis, optionally pass site_id to run against a specific multisite blog; defaults to the content site (20). If this plugin is inactive on the target site, the ability returns plugin_inactive_on_site. Pure text analysis runs on the current blog unless site_id is explicitly passed. Use to assess content readability before publication or as part of an editorial quality check. Does not require AI — computation is deterministic.',
+						'instructions' => 'Accepts a post_id or raw text and returns Flesch-Kincaid Reading Ease score, Grade Level, and supporting counts (sentences, syllables) plus word_count. word_count matches the Gutenberg editor document summary (Post sidebar "X words") via the @wordpress/wordcount algorithm; Ease/Grade use a separate Flesch-Kincaid pipeline and are not derived from that word count. For post_id analysis, post content is analyzed (excerpt is excluded) so Ease/Grade match the editor Reading Score panel. Optionally pass site_id to run against a specific multisite blog; defaults to the content site (20). If this plugin is inactive on the target site, the ability returns plugin_inactive_on_site. Pure text analysis runs on the current blog unless site_id is explicitly passed. Use to assess content readability before publication or as part of an editorial quality check. Does not require AI — computation is deterministic.',
 						'readonly'     => true,
 						'destructive'  => false,
 						'idempotent'   => true,
@@ -171,14 +171,8 @@ class Reading_Score {
 				);
 			}
 
-			$parts = array();
-			if ( ! empty( $post->post_excerpt ) ) {
-				$parts[] = $post->post_excerpt;
-			}
-			if ( ! empty( $post->post_content ) ) {
-				$parts[] = $post->post_content;
-			}
-			$raw_text = implode( ' ', $parts );
+			// Match the editor Reading Score panel: analyze post content only.
+			$raw_text = (string) $post->post_content;
 		}
 
 		if ( empty( $raw_text ) ) {
@@ -194,13 +188,54 @@ class Reading_Score {
 			);
 		}
 
-		$result          = $this->calculate( $raw_text );
-		$result['error'] = '';
+		$result               = $this->calculate( $raw_text );
+		// Ability surface: report Gutenberg document word count; keep FK internals for Ease/Grade.
+		$result['word_count'] = $this->count_document_words( $raw_text );
+		$result['error']      = '';
 		return $result;
 	}
 
 	/**
+	 * Count words with the Gutenberg editor document algorithm (@wordpress/wordcount, type words).
+	 *
+	 * Matches JS defaults in @wordpress/wordcount defaultSettings + countWords pipeline.
+	 * Digits are not stripped (unlike block_core_post_time_to_read_word_count).
+	 *
+	 * @param string $text Raw post content or text (HTML allowed).
+	 * @return int Word count.
+	 */
+	private function count_document_words( string $text ): int {
+		// 1–2. Strip tags → newline; strip HTML comments.
+		$text = preg_replace( '/<\/?[a-z][^>]*?>/i', "\n", $text ) ?? $text;
+		$text = preg_replace( '/<!--[\s\S]*?-->/', '', $text ) ?? $text;
+		// 3. Shortcodes: JS default list is empty — skip.
+		// 4. Encoded spaces → space.
+		$text = preg_replace( '/&nbsp;|&#160;/i', ' ', $text ) ?? $text;
+		// 5. Strip HTML entities (remove, do not decode).
+		$text = preg_replace( '/&\S+?;/', '', $text ) ?? $text;
+		// 6. Connectors → space.
+		$text = preg_replace( '/--|\x{2014}/u', ' ', $text ) ?? $text;
+		// 7. removeRegExp from JS defaultSettings (excludes digits 0-9).
+		$remove = '/['
+			. '\x{0021}-\x{002F}\x{003A}-\x{0040}\x{005B}-\x{0060}\x{007B}-\x{007E}'
+			. '\x{0080}-\x{00BF}\x{00D7}\x{00F7}'
+			. '\x{2000}-\x{2BFF}'
+			. '\x{2E00}-\x{2E7F}'
+			. ']/u';
+		$text   = preg_replace( $remove, '', $text ) ?? $text;
+		// 8. Append newline then match words (same order as JS countWords).
+		$text  = $text . "\n";
+		$count = preg_match_all( '/\S\s+/u', $text, $matches );
+
+		return (int) $count;
+	}
+
+	/**
 	 * Calculate Flesch-Kincaid metrics for a given text.
+	 *
+	 * Returns FK-internal word_count used by the Ease/Grade formulas (entity decode +
+	 * whitespace split). Callers of execute() overwrite word_count with the Gutenberg
+	 * document count before returning ability output.
 	 *
 	 * @param string $text Raw text (may include HTML — stripped internally).
 	 * @return array {
@@ -208,15 +243,17 @@ class Reading_Score {
 	 *     @type float  $grade_level    Flesch-Kincaid Grade Level.
 	 *     @type string $grade_label    Human-readable grade label.
 	 *     @type string $ease_label     Human-readable ease label.
-	 *     @type int    $word_count     Total words.
+	 *     @type int    $word_count     FK-internal word count (not Gutenberg).
 	 *     @type int    $sentence_count Total sentences.
 	 *     @type int    $syllable_count Total syllables.
 	 * }
 	 */
 	public function calculate( string $text ): array {
-		// Strip HTML tags and decode entities.
+		// Strip HTML tags, decode entities to Unicode, collapse whitespace.
+		// Keep this preprocess contract identical to the JS stripHtml() helper.
 		$text = wp_strip_all_tags( $text );
 		$text = html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		$text = preg_replace( '/\s+/u', ' ', $text ) ?? '';
 		$text = trim( $text );
 
 		if ( empty( $text ) ) {
