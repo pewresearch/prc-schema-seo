@@ -348,8 +348,7 @@ class DataViews_Provider {
 		}
 
 		if ( 'noindex' === $meta_key ) {
-			$bool = filter_var( $value, FILTER_VALIDATE_BOOLEAN );
-			if ( $bool ) {
+			if ( self::is_noindex_value( $value ) ) {
 				$data['noindex'] = true;
 			} else {
 				unset( $data['noindex'] );
@@ -367,6 +366,25 @@ class DataViews_Provider {
 		}
 
 		return $this->persist_seo_data( (int) $post_id, $data );
+	}
+
+	/**
+	 * Whether a list field value means noindex.
+	 *
+	 * Accepts booleans, 1/0, and the list tokens "noindexed" / "indexed".
+	 *
+	 * @param mixed $value Raw field value.
+	 * @return bool
+	 */
+	public static function is_noindex_value( $value ): bool {
+		if ( true === $value || 1 === $value || '1' === $value ) {
+			return true;
+		}
+		if ( is_string( $value ) ) {
+			$normalized = strtolower( $value );
+			return in_array( $normalized, array( 'noindexed', 'noindex', 'true', 'yes', 'on' ), true );
+		}
+		return false;
 	}
 
 	/**

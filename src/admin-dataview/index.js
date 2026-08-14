@@ -3,12 +3,6 @@
  */
 import { addFilter } from '@wordpress/hooks';
 import { __ } from '@wordpress/i18n';
-import { globe } from '@wordpress/icons';
-
-/**
- * Internal Dependencies
- */
-import SeoEditForm from './seo-edit-form';
 
 addFilter('prcWpAdminDataview.fields', 'prc-schema-seo/fields', (fields) => {
 	if (!window?.prcWpAdminDataview?.seo?.enabled) {
@@ -18,7 +12,7 @@ addFilter('prcWpAdminDataview.fields', 'prc-schema-seo/fields', (fields) => {
 	const schemaElements = (
 		window.prcWpAdminDataview.seo.schemaTypeOptions || []
 	)
-		.filter((option) => option.value)
+		.filter((option) => typeof option?.value === 'string')
 		.map((option) => ({
 			value: option.value,
 			label: option.label,
@@ -30,7 +24,7 @@ addFilter('prcWpAdminDataview.fields', 'prc-schema-seo/fields', (fields) => {
 	const primaryTermElements = (
 		window.prcWpAdminDataview.seo.primaryTermOptions || []
 	)
-		.filter((option) => option.value)
+		.filter((option) => typeof option?.value === 'string')
 		.map((option) => ({
 			value: option.value,
 			label: option.label,
@@ -40,6 +34,7 @@ addFilter('prcWpAdminDataview.fields', 'prc-schema-seo/fields', (fields) => {
 		...fields,
 		{
 			id: 'seoTitle',
+			type: 'text',
 			label: __('SEO Title', 'prc-schema-seo'),
 			enableSorting: false,
 			getValue: ({ item }) => item.seoTitle || '',
@@ -47,8 +42,13 @@ addFilter('prcWpAdminDataview.fields', 'prc-schema-seo/fields', (fields) => {
 		},
 		{
 			id: 'seoDescription',
+			type: 'text',
 			label: __('Meta Description', 'prc-schema-seo'),
 			enableSorting: false,
+			Edit: {
+				control: 'textarea',
+				rows: 4,
+			},
 			getValue: ({ item }) => item.seoDescription || '',
 			render: ({ item }) => {
 				const text = item.seoDescription || '';
@@ -89,6 +89,7 @@ addFilter('prcWpAdminDataview.fields', 'prc-schema-seo/fields', (fields) => {
 			id: 'primaryTerm',
 			label: __('Primary Term', 'prc-schema-seo'),
 			type: 'text',
+			readOnly: primaryTermElements.length === 0,
 			elements: primaryTermElements,
 			filterBy: {
 				operators: ['isAny'],
@@ -101,6 +102,7 @@ addFilter('prcWpAdminDataview.fields', 'prc-schema-seo/fields', (fields) => {
 		{
 			id: 'indexNowStatus',
 			label: __('IndexNow', 'prc-schema-seo'),
+			readOnly: true,
 			enableSorting: false,
 			getValue: ({ item }) => item.indexNowStatus || '',
 			render: ({ item }) => item.indexNowStatus || '—',
@@ -108,40 +110,10 @@ addFilter('prcWpAdminDataview.fields', 'prc-schema-seo/fields', (fields) => {
 		{
 			id: 'googleIndexStatus',
 			label: __('Google Index', 'prc-schema-seo'),
+			readOnly: true,
 			enableSorting: false,
 			getValue: ({ item }) => item.googleIndexStatus || '',
 			render: ({ item }) => item.googleIndexStatus || '—',
 		},
 	];
 });
-
-addFilter(
-	'prcWpAdminDataview.actions',
-	'prc-schema-seo/edit-seo',
-	(actions, { onRefresh }) => {
-		if (!window?.prcWpAdminDataview?.seo?.enabled) {
-			return actions;
-		}
-
-		return [
-			{
-				id: 'edit-seo',
-				label: __('Edit SEO', 'prc-schema-seo'),
-				icon: globe,
-				modalHeader: __('Edit SEO', 'prc-schema-seo'),
-				isEligible: (item) => !!item?.id,
-				RenderModal: ({ items, closeModal }) => (
-					<SeoEditForm
-						initialValues={items[0]}
-						onCancel={closeModal}
-						onSaved={() => {
-							onRefresh?.();
-							closeModal?.();
-						}}
-					/>
-				),
-			},
-			...actions,
-		];
-	}
-);
