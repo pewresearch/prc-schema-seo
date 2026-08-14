@@ -72,6 +72,7 @@ class Editor_UI {
 					'gscEnabled'            => Search_Console::is_configured(),
 					'homeUrl'               => home_url(),
 					'symbolSvgUrl'          => $this->get_qr_logo_url(),
+					'canManageSeoAdvanced'  => current_user_can( 'prc_surfaces__seo_advanced' ),
 					'branding'              => apply_filters(
 						'prc_schema_seo_branding',
 						array(

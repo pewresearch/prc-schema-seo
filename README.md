@@ -303,6 +303,16 @@ The block editor UI exposes three `@wordpress/hooks` filter points for extending
 | `prc-platform.seo.ui.social` | Block editor — Social tab | Wrap or extend the Social metadata panel. |
 | `prc-platform.seo.ui.site-editor.social` | Site Editor — Social tab | Wrap or extend the Social panel in the Site Editor context. |
 
+### Editor capability gates
+
+Some SEO panels are hidden from users who lack the matching PRC surface capability (see `client-mu-plugins/user-roles.json`):
+
+| Panel | Capability | Boot flag |
+| ----- | ---------- | --------- |
+| Search Advanced | `prc_surfaces__seo_advanced` | `window.PRCSchemaSEO.canManageSeoAdvanced` |
+
+Editors without the capability still see the base Search panel; only Search Advanced is gated.
+
 ```js
 import { addFilter } from '@wordpress/hooks';
 

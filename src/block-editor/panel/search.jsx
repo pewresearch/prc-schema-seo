@@ -351,6 +351,9 @@ function Search({ seoData, update }) {
 
 	const [localGscData, setLocalGscData] = useState(null);
 	const gscData = localGscData || seoData?.gsc_index_status;
+	const canManageSeoAdvanced =
+		typeof window !== 'undefined' &&
+		window.PRCSchemaSEO?.canManageSeoAdvanced;
 
 	return (
 		<>
@@ -414,54 +417,56 @@ function Search({ seoData, update }) {
 					/>
 				</VStack>
 			</PanelBody>
-			<PanelBody
-				title={__('Search Advanced', 'prc-schema-seo')}
-				initialOpen={false}
-			>
-				<VStack>
-					<SelectControl
-						label={__('Schema Type', 'prc-schema-seo')}
-						value={decodeEntities(
-							(seoData && seoData.schema_type) ||
-								schemaTypes[0]?.value ||
-								''
-						)}
-						onChange={(v) => update('schema_type', v)}
-						options={schemaTypes}
-						help={__(
-							'Select the structured data type. The schema.json type you choose can influence eligibility for rich results (enhanced snippets, badges) in Google Search and helps the Google Knowledge Graph better understand and relate your content to entities.',
-							'prc-schema-seo'
-						)}
-					/>
-					<CardDivider />
-					<ToggleControl
-						label={__(
-							'Hide page from search engines',
-							'prc-schema-seo'
-						)}
-						help={__(
-							"If selected, a 'noindex' tag will help instruct search engines and crawlers to NOT include this page in search results and remove it from the sitemap.",
-							'prc-schema-seo'
-						)}
-						checked={!!(seoData && seoData.noindex)}
-						onChange={(v) => update('noindex', v)}
-					/>
-					<CardDivider />
-					<TextControl
-						label={__('Canonical URL', 'prc-schema-seo')}
-						value={decodeEntities(
-							(seoData && seoData.canonical_url) || ''
-						)}
-						onChange={(v) => update('canonical_url', v)}
-						help={__(
-							'Override the default canonical URL. Leave empty to use the default permalink. Use this to indicate the preferred URL when content exists at multiple URLs.',
-							'prc-schema-seo'
-						)}
-						type="url"
-						placeholder="https://example.com/preferred-url"
-					/>
-				</VStack>
-			</PanelBody>
+			{canManageSeoAdvanced && (
+				<PanelBody
+					title={__('Search Advanced', 'prc-schema-seo')}
+					initialOpen={false}
+				>
+					<VStack>
+						<SelectControl
+							label={__('Schema Type', 'prc-schema-seo')}
+							value={decodeEntities(
+								(seoData && seoData.schema_type) ||
+									schemaTypes[0]?.value ||
+									''
+							)}
+							onChange={(v) => update('schema_type', v)}
+							options={schemaTypes}
+							help={__(
+								'Select the structured data type. The schema.json type you choose can influence eligibility for rich results (enhanced snippets, badges) in Google Search and helps the Google Knowledge Graph better understand and relate your content to entities.',
+								'prc-schema-seo'
+							)}
+						/>
+						<CardDivider />
+						<ToggleControl
+							label={__(
+								'Hide page from search engines',
+								'prc-schema-seo'
+							)}
+							help={__(
+								"If selected, a 'noindex' tag will help instruct search engines and crawlers to NOT include this page in search results and remove it from the sitemap.",
+								'prc-schema-seo'
+							)}
+							checked={!!(seoData && seoData.noindex)}
+							onChange={(v) => update('noindex', v)}
+						/>
+						<CardDivider />
+						<TextControl
+							label={__('Canonical URL', 'prc-schema-seo')}
+							value={decodeEntities(
+								(seoData && seoData.canonical_url) || ''
+							)}
+							onChange={(v) => update('canonical_url', v)}
+							help={__(
+								'Override the default canonical URL. Leave empty to use the default permalink. Use this to indicate the preferred URL when content exists at multiple URLs.',
+								'prc-schema-seo'
+							)}
+							type="url"
+							placeholder="https://example.com/preferred-url"
+						/>
+					</VStack>
+				</PanelBody>
+			)}
 		</>
 	);
 }

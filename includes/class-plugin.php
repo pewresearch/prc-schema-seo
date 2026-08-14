@@ -98,8 +98,8 @@ class Plugin {
 		// Migration utilities (loaded lazily for CLI usage).
 		require_once __DIR__ . '/class-yoast-migrator.php';
 
-		// Admin Columns Pro integration (hooks only fire if Admin Columns is active).
-		require_once __DIR__ . '/admin-columns/class-admin-columns.php';
+		// DataViews list provider for prc-wp-admin-dataview.
+		require_once __DIR__ . '/dataviews/class-dataviews-provider.php';
 
 		// Reading score calculator and WP Ability (no AI dependency).
 		require_once __DIR__ . '/class-reading-score.php';
@@ -153,8 +153,8 @@ class Plugin {
 		// Google Search Console: surface index status in the editor
 		new Search_Console( $this->get_loader() );
 
-		// Admin Columns Pro integration (hooks only fire if Admin Columns is active)
-		new Admin_Columns( $this->get_loader() );
+		// DataViews enrichment + inline edit (no-ops if admin-dataview is inactive).
+		new DataViews_Provider( $this->get_loader() );
 
 		// Reading score ability (registered unconditionally — no AI plugin required).
 		new Reading_Score( $this->get_loader() );
@@ -215,8 +215,20 @@ class Plugin {
 	 * @hook init
 	 */
 	public function register_default_post_type_support() {
-		add_post_type_support( 'post', 'prc-schema-seo' );
-		add_post_type_support( 'page', 'prc-schema-seo' );
+		$post_types = array(
+			'post',
+			'page',
+			'decoded',
+			'press-release',
+			'short-read',
+			'mini-course',
+			'events',
+			'fact-sheet',
+		);
+
+		foreach ( $post_types as $post_type ) {
+			add_post_type_support( $post_type, 'prc-schema-seo' );
+		}
 	}
 
 	/**
