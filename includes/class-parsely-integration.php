@@ -167,6 +167,13 @@ class Parsely_Integration {
 			return array();
 		}
 
+		if ( Cache_Keys::caching_enabled() ) {
+			$cached = Cache_Keys::get( Cache_Keys::parsely_post( $post_id ), Cache_Keys::PARSELY_GROUP );
+			if ( is_array( $cached ) ) {
+				return $cached;
+			}
+		}
+
 		$data = $this->seo_metadata->get_seo_data( $post_id );
 		if ( ! empty( $data['title'] ) ) {
 			$metadata['headline'] = $data['title'];
@@ -226,6 +233,10 @@ class Parsely_Integration {
 		$mod_date = get_the_modified_date( 'c', $post_id );
 		if ( is_string( $mod_date ) && '' !== $mod_date ) {
 			$metadata['dateModified'] = $mod_date;
+		}
+
+		if ( Cache_Keys::caching_enabled() ) {
+			Cache_Keys::set( Cache_Keys::parsely_post( $post_id ), $metadata, Cache_Keys::PARSELY_GROUP, self::CACHE_TTL );
 		}
 
 		return $metadata;

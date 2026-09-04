@@ -436,13 +436,14 @@ class Metadata {
 	 * Clear cache for a post.
 	 *
 	 * Clears seo_data, schema, meta_tags, and contact entries for the post
-	 * from the unified post-level cache group.
+	 * from the unified post-level cache group, plus the Parse.ly singular key.
 	 *
 	 * @param int $post_id Post ID.
 	 */
 	public function clear_cache( $post_id ) {
 		$post_id = (int) $post_id;
 		Cache_Keys::delete_multiple( Cache_Keys::post_level_keys( $post_id ), Cache_Keys::GROUP );
+		Cache_Keys::delete_multiple( array( Cache_Keys::parsely_post( $post_id ) ), Cache_Keys::PARSELY_GROUP );
 
 		do_action( 'prc_schema_seo_cache_cleared', $post_id );
 	}

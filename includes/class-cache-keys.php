@@ -133,8 +133,19 @@ class Cache_Keys {
 			return;
 		}
 
-		$keys   = self::post_level_keys( $post_id );
-		$found  = self::get_multiple( $keys, self::GROUP );
+		$keys       = self::post_level_keys( $post_id );
+		$all_primed = true;
+		foreach ( $keys as $key ) {
+			if ( ! array_key_exists( self::primed_bag_key( $key, self::GROUP ), self::$primed ) ) {
+				$all_primed = false;
+				break;
+			}
+		}
+		if ( $all_primed ) {
+			return;
+		}
+
+		$found = self::get_multiple( $keys, self::GROUP );
 		foreach ( $keys as $key ) {
 			if ( array_key_exists( $key, $found ) && false !== $found[ $key ] ) {
 				self::remember( $key, self::GROUP, $found[ $key ] );
@@ -281,6 +292,16 @@ class Cache_Keys {
 	 */
 	public static function parsely_post_type_archive( string $post_type ): string {
 		return 'parsely_tags_post_type_archive_' . $post_type;
+	}
+
+	/**
+	 * Parse.ly singular metadata cache key.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return string
+	 */
+	public static function parsely_post( int $post_id ): string {
+		return 'parsely_metadata_' . $post_id;
 	}
 
 	/**
