@@ -1,6 +1,6 @@
 {
 	"name": "@prc/schema-seo",
-	"version": "1.3.0",
+	"version": "1.3.1",
 	"description": "Provides a module for PRC Platform that...",
 	"scripts": {
 		"build": "wp-scripts build --source-path=src/block-editor/ --output-path=build/block-editor/ && node ./scripts/prepend-block-editor-pragma.cjs && wp-scripts build --source-path=src/site-editor/ --output-path=build/site-editor/ && wp-scripts build --source-path=src/admin-surfaces/redirect-csv-import/ --output-path=build/admin-surfaces/redirect-csv-import/ && wp-scripts build --source-path=src/admin-dataview/ --output-path=build/admin-dataview/",
@@ -14,7 +14,7 @@
 		"@emotion/styled": "^11.14.1",
 		"@prc/components": "*",
 		"@prc/icons": "*",
-		"@wordpress/dataviews": "17.2.0",
+		"@wordpress/dataviews": "18.1.0",
 		"@wordpress/icons": "^11.3.0",
 		"qrcode": "^1.5.4"
 	},
