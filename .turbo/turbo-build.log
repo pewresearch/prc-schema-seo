@@ -1,5 +1,5 @@
 
-> @prc/schema-seo@1.3.1 build
+> @prc/schema-seo@1.3.0 build
 > wp-scripts build --source-path=src/block-editor/ --output-path=build/block-editor/ && node ./scripts/prepend-block-editor-pragma.cjs && wp-scripts build --source-path=src/site-editor/ --output-path=build/site-editor/ && wp-scripts build --source-path=src/admin-surfaces/redirect-csv-import/ --output-path=build/admin-surfaces/redirect-csv-import/ && wp-scripts build --source-path=src/admin-dataview/ --output-path=build/admin-dataview/
 
 assets by path [1m[32m*.css[39m[22m 11.7 KiB
@@ -21,22 +21,22 @@ built modules 146 KiB (javascript) 5.86 KiB (css/mini-extract) [1m[33m[built]
     css ../../node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[1].use[1]!../../node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[1].use[2]![1m./src/block-editor/previews.css[39m[22m 5.86 KiB [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
     [1m./src/block-editor/panel/ai-suggest-seo.jsx[39m[22m 3.23 KiB [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
   + 6 modules
-webpack 5.106.2 compiled [1m[32msuccessfully[39m[22m in 2094 ms
+webpack 5.106.2 compiled [1m[32msuccessfully[39m[22m in 9193 ms
 asset [1m[32mindex.js[39m[22m 19.5 KiB [1m[32m[emitted][39m[22m [1m[32m[minimized][39m[22m (name: index)
 asset [1m[32mindex.asset.php[39m[22m 281 bytes [1m[32m[emitted][39m[22m (name: index)
 Entrypoint [1mindex[39m[22m 19.8 KiB = [1m[32mindex.js[39m[22m 19.5 KiB [1m[32mindex.asset.php[39m[22m 281 bytes
 orphan modules 273 KiB [1m[33m[orphan][39m[22m 349 modules
 runtime modules 663 bytes 3 modules
 [1m./src/site-editor/index.js + 27 modules[39m[22m 45 KiB [1m[31m[not cacheable][39m[22m [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
-webpack 5.106.2 compiled [1m[32msuccessfully[39m[22m in 1837 ms
+webpack 5.106.2 compiled [1m[32msuccessfully[39m[22m in 4620 ms
 asset [1m[32mindex.js[39m[22m 1.86 KiB [1m[32m[emitted][39m[22m [1m[32m[minimized][39m[22m (name: index)
 asset [1m[32mindex.asset.php[39m[22m 84 bytes [1m[32m[emitted][39m[22m (name: index)
 Entrypoint [1mindex[39m[22m 1.94 KiB = [1m[32mindex.js[39m[22m 1.86 KiB [1m[32mindex.asset.php[39m[22m 84 bytes
 [1m./src/admin-surfaces/redirect-csv-import/index.js[39m[22m 3.93 KiB [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
-webpack 5.106.2 compiled [1m[32msuccessfully[39m[22m in 937 ms
+webpack 5.106.2 compiled [1m[32msuccessfully[39m[22m in 2342 ms
 asset [1m[32mindex.js[39m[22m 2.07 KiB [1m[32m[emitted][39m[22m [1m[32m[minimized][39m[22m (name: index)
 asset [1m[32mindex.asset.php[39m[22m 105 bytes [1m[32m[emitted][39m[22m (name: index)
 Entrypoint [1mindex[39m[22m 2.17 KiB = [1m[32mindex.js[39m[22m 2.07 KiB [1m[32mindex.asset.php[39m[22m 105 bytes
 orphan modules 84 bytes [1m[33m[orphan][39m[22m 2 modules
 [1m./src/admin-dataview/index.js + 2 modules[39m[22m 3.15 KiB [1m[31m[not cacheable][39m[22m [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
-webpack 5.106.2 compiled [1m[32msuccessfully[39m[22m in 456 ms
+webpack 5.106.2 compiled [1m[32msuccessfully[39m[22m in 2623 ms
