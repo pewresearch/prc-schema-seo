@@ -36,7 +36,7 @@ if ( ! defined( 'DEFAULT_TECHNICAL_CONTACT' ) ) {
 	define( 'DEFAULT_TECHNICAL_CONTACT', 'webdev@pewresearch.org' );
 }
 
-// When running inside the PRC Platform monorepo the root autoloader already
+// When running inside the PRC Platform monorepo the root autoloader already.
 // provides every dependency; skip per-plugin Jetpack Autoloader initialization.
 if ( ! defined( 'PRC_PLATFORM' ) ) {
 	$prc_schema_seo_autoloader = __DIR__ . '/vendor/autoload_packages.php';
@@ -79,6 +79,7 @@ if ( defined( 'WP_CLI' ) && class_exists( '\WP_CLI' ) ) {
 	require plugin_dir_path( __FILE__ ) . 'includes/cli/class-cli-benchmark.php';
 	require plugin_dir_path( __FILE__ ) . 'includes/cli/class-cli-migration.php';
 	require plugin_dir_path( __FILE__ ) . 'includes/cli/class-cli-compare.php';
+	require plugin_dir_path( __FILE__ ) . 'includes/cli/class-cli-qr.php';
 }
 
 /**
@@ -96,20 +97,25 @@ function run_prc_schema_seo() {
 
 	// Register all WP-CLI commands under the 'prc seo' namespace.
 	if ( defined( 'WP_CLI' ) && class_exists( '\WP_CLI' ) ) {
-		// Benchmark command: wp prc seo benchmark --post=ID
+		// Benchmark command: wp prc seo benchmark --post=ID.
 		if ( class_exists( '\PRC\Platform\Schema_SEO\CLI_Benchmark' ) ) {
 			\WP_CLI::add_command( 'prc seo benchmark', array( new CLI_Benchmark(), 'run' ) );
 		}
 
-		// Migration commands: wp prc seo migrate-post, migrate-posts, migrate-term, migrate-terms, migration-status, preview-yoast, clean-yoast-placeholders, clean-yoast-options
+		// Migration commands: wp prc seo migrate-post, migrate-posts, migrate-term, migrate-terms, migration-status, preview-yoast, clean-yoast-placeholders, clean-yoast-options.
 		if ( class_exists( '\PRC\Platform\Schema_SEO\CLI_Migration' ) ) {
 			\WP_CLI::add_command( 'prc seo', new CLI_Migration() );
 		}
 
-		// Compare commands: wp prc seo compare, compare-batch
+		// Compare commands: wp prc seo compare, compare-batch.
 		if ( class_exists( '\PRC\Platform\Schema_SEO\CLI_Compare' ) ) {
 			\WP_CLI::add_command( 'prc seo compare', array( new CLI_Compare(), 'compare' ) );
 			\WP_CLI::add_command( 'prc seo compare-batch', array( new CLI_Compare(), 'compare_batch' ) );
+		}
+
+		// QR command: wp prc seo generate-qr <url>.
+		if ( class_exists( '\PRC\Platform\Schema_SEO\CLI_QR' ) ) {
+			\WP_CLI::add_command( 'prc seo generate-qr', array( new CLI_QR(), 'generate' ) );
 		}
 	}
 }

@@ -53,19 +53,18 @@ class Plugin {
 	 * Load the required dependencies for this plugin.
 	 */
 	private function load_dependencies() {
-		// Composer dependencies are loaded by the main plugin file via
-		// Jetpack Autoloader; see prc-schema-seo.php.
+		// Composer dependencies are loaded by the main plugin file via Jetpack Autoloader; see prc-schema-seo.php.
 
 		$this->loader = new Loader();
 
-		// Load required class files
+		// Load required class files.
 		require_once __DIR__ . '/class-cache-keys.php';
 		require_once __DIR__ . '/class-primary-term.php';
 		require_once __DIR__ . '/class-token-resolver.php';
 		require_once __DIR__ . '/class-metadata.php';
 		require_once __DIR__ . '/class-rest-api.php';
 
-		// Schema generator and output
+		// Schema generator and output.
 		require_once __DIR__ . '/schema/class-generator.php';
 		require_once __DIR__ . '/schema/class-json-output.php';
 
@@ -75,22 +74,22 @@ class Plugin {
 		require_once __DIR__ . '/class-template-defaults.php';
 		require_once __DIR__ . '/class-cache-invalidator.php';
 
-		// Contact resolution service
+		// Contact resolution service.
 		require_once __DIR__ . '/class-contact-resolver.php';
 
-		// Redirect on slug change (integration with Safe Redirect Manager)
+		// Redirect on slug change (integration with Safe Redirect Manager).
 		require_once __DIR__ . '/class-redirect-on-slug-change.php';
 
-		// Sitemap integration (conditional on sitemap plugin)
+		// Sitemap integration (conditional on sitemap plugin).
 		require_once __DIR__ . '/class-sitemap-integration.php';
 
-		// IndexNow search engine notification
+		// IndexNow search engine notification.
 		require_once __DIR__ . '/class-indexnow.php';
 
-		// Google Search Console URL Inspection
+		// Google Search Console URL Inspection.
 		require_once __DIR__ . '/class-search-console.php';
 
-		// User Interface for various contexts
+		// User Interface for various contexts.
 		require_once __DIR__ . '/admin/class-taxonomy-ui.php';
 		require_once __DIR__ . '/admin/class-editor-ui.php';
 		require_once __DIR__ . '/admin/class-redirect-csv-import.php';
@@ -104,7 +103,8 @@ class Plugin {
 		// Reading score calculator and WP Ability (no AI dependency).
 		require_once __DIR__ . '/class-reading-score.php';
 
-		// QR code attachment — uploads QR images to the media library.
+		// QR code generation and media-library persistence.
+		require_once __DIR__ . '/class-qr-generator.php';
 		require_once __DIR__ . '/class-qr-attachment.php';
 	}
 
@@ -112,45 +112,45 @@ class Plugin {
 	 * Initialize the dependencies.
 	 */
 	private function init_dependencies() {
-		// Register default post type support for built-in types
+		// Register default post type support for built-in types.
 		$this->loader->add_action( 'init', $this, 'register_default_post_type_support', 5 );
 
-		// SEO Metadata management
+		// SEO Metadata management.
 		new Metadata( $this->get_loader() );
-		// REST API extensions
+		// REST API extensions.
 		new REST_API( $this->get_loader() );
 
-		// Schema generator (instantiated separately for potential future direct use)
+		// Schema generator (instantiated separately for potential future direct use).
 		new Generator( $this->get_loader() );
-		// Output handler (registers wp_head schema output)
+		// Output handler (registers wp_head schema output).
 		new JSON_Output( $this->get_loader() );
 
-		// Meta tags output (Open Graph, Twitter, robots, canonical)
+		// Meta tags output (Open Graph, Twitter, robots, canonical).
 		new Meta_Tags( $this->get_loader() );
-		// Parsely: wp-parsely filters + home/term meta output
+		// Parsely: wp-parsely filters + home/term meta output.
 		new Parsely_Integration( $this->get_loader() );
-		// Template defaults (site level patterns & overrides)
+		// Template defaults (site level patterns & overrides).
 		new Template_Defaults( $this->get_loader() );
-		// Cache invalidation events
+		// Cache invalidation events.
 		new Cache_Invalidator( $this->get_loader() );
 
-		// Editor SEO UI components
+		// Editor SEO UI components.
 		new Editor_UI( $this->get_loader() );
-		// Taxonomy Term SEO UI components
+		// Taxonomy Term SEO UI components.
 		new Taxonomy_UI( $this->get_loader() );
 
-		// Automatic redirects on slug change (Safe Redirect Manager integration)
+		// Automatic redirects on slug change (Safe Redirect Manager integration).
 		new Redirect_On_Slug_Change( $this->get_loader() );
-		// CSV import UI for Safe Redirect Manager
+		// CSV import UI for Safe Redirect Manager.
 		new Redirect_CSV_Import( $this->get_loader() );
 
-		// Sitemap integration (only hooks if sitemap plugin is active)
+		// Sitemap integration (only hooks if sitemap plugin is active).
 		new Sitemap_Integration( $this->get_loader() );
 
-		// IndexNow: notify search engines when content changes
+		// IndexNow: notify search engines when content changes.
 		new IndexNow( $this->get_loader() );
 
-		// Google Search Console: surface index status in the editor
+		// Google Search Console: surface index status in the editor.
 		new Search_Console( $this->get_loader() );
 
 		// DataViews enrichment + inline edit (no-ops if admin-dataview is inactive).

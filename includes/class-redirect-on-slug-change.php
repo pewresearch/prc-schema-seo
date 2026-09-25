@@ -138,6 +138,161 @@ class Redirect_On_Slug_Change {
 		return isset( $parsed['path'] ) ? $parsed['path'] : '/';
 	}
 
+	/**
+	 * Normalize a stored or requested from-path the way SRM exact-match does.
+	 *
+	 * @param string $path Path to normalize.
+	 * @return string
+	 */
+	private static function normalize_from_path( $path ) {
+		$normalized = untrailingslashit( (string) $path );
+		return '' === $normalized ? '/' : $normalized;
+	}
+
+	/**
+	 * Return redirect_rule IDs whose from-path is the new canonical URL.
+	 *
+	 * Rows must use srm_get_redirects() keys. Regex rows are included when
+	 * the stored from-string equals the canonical path.
+	 *
+	 * @param string $canonical_path New permalink path.
+	 * @param array  $redirects      Redirect rows.
+	 * @return int[]
+	 */
+	public static function redirect_ids_blocking_canonical( $canonical_path, array $redirects ) {
+		$canonical = self::normalize_from_path( $canonical_path );
+		$ids       = array();
+
+		foreach ( $redirects as $redirect ) {
+			if ( ! is_array( $redirect ) || empty( $redirect['ID'] ) ) {
+				continue;
+			}
+
+			$from = isset( $redirect['redirect_from'] ) ? $redirect['redirect_from'] : '';
+			if ( self::normalize_from_path( $from ) === $canonical ) {
+				$ids[] = (int) $redirect['ID'];
+			}
+		}
+
+		return $ids;
+	}
+
+	/**
+	 * Load published exact-path redirect rows for a canonical from-path.
+	 *
+	 * @param string $canonical_path Canonical permalink path.
+	 * @return array
+	 */
+	private function find_published_redirects_from( $canonical_path ) {
+		global $wpdb;
+
+		$canonical = srm_sanitize_redirect_from( $canonical_path );
+		if ( '' === $canonical ) {
+			return array();
+		}
+
+		$stripped = untrailingslashit( $canonical );
+		if ( '' === $stripped ) {
+			$variant_a = '/';
+			$variant_b = '/';
+		} else {
+			$variant_a = $stripped;
+			$variant_b = trailingslashit( $canonical );
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT p.ID AS ID, fromMeta.meta_value AS redirect_from, regexMeta.meta_value AS enable_regex
+				FROM {$wpdb->posts} AS p
+				INNER JOIN {$wpdb->postmeta} AS fromMeta
+					ON p.ID = fromMeta.post_id AND fromMeta.meta_key = %s
+				LEFT JOIN {$wpdb->postmeta} AS regexMeta
+					ON p.ID = regexMeta.post_id AND regexMeta.meta_key = %s
+				WHERE p.post_type = %s
+					AND p.post_status = %s
+					AND fromMeta.meta_value IN (%s, %s)",
+				'_redirect_rule_from',
+				'_redirect_rule_from_regex',
+				'redirect_rule',
+				'publish',
+				$variant_a,
+				$variant_b
+			),
+			ARRAY_A
+		);
+
+		if ( ! is_array( $rows ) ) {
+			return array();
+		}
+
+		$redirects = array();
+		foreach ( $rows as $row ) {
+			$redirects[] = array(
+				'ID'            => (int) $row['ID'],
+				'redirect_from' => isset( $row['redirect_from'] ) ? (string) $row['redirect_from'] : '',
+				'enable_regex'  => ! empty( $row['enable_regex'] ),
+			);
+		}
+
+		return $redirects;
+	}
+
+	/**
+	 * Unpublish rules that would send the new canonical away, then create abandoned → canonical.
+	 *
+	 * @param string $from_path Abandoned permalink path.
+	 * @param string $to_path   New canonical permalink path.
+	 * @param string $notes     Redirect notes.
+	 * @return int|\WP_Error
+	 */
+	private function create_slug_change_redirect( $from_path, $to_path, $notes ) {
+		$from = srm_sanitize_redirect_from( $from_path );
+		$to   = srm_sanitize_redirect_from( $to_path );
+
+		if ( '' === $from || '' === $to ) {
+			return new \WP_Error( 'invalid-argument', 'Redirect from and/or redirect to arguments are invalid.' );
+		}
+
+		if ( self::normalize_from_path( $from ) === self::normalize_from_path( $to ) ) {
+			return new \WP_Error( 'invalid-argument', 'Redirect from and redirect to are the same path.' );
+		}
+
+		$blocking_ids = self::redirect_ids_blocking_canonical(
+			$to,
+			$this->find_published_redirects_from( $to )
+		);
+
+		foreach ( $blocking_ids as $blocking_id ) {
+			$updated = wp_update_post(
+				array(
+					'ID'          => $blocking_id,
+					'post_status' => 'draft',
+				),
+				true
+			);
+			if ( is_wp_error( $updated ) || 0 === (int) $updated ) {
+				return is_wp_error( $updated )
+					? $updated
+					: new \WP_Error( 'unpublish_failed', 'Could not unpublish a blocking redirect.' );
+			}
+		}
+
+		$current_user_id = get_current_user_id();
+		$author_id       = $current_user_id ? $current_user_id : 1;
+
+		return srm_create_redirect(
+			$from,
+			$to_path,
+			$this->get_status_code(),
+			false,
+			'publish',
+			0,
+			$notes,
+			$author_id
+		);
+	}
+
 	// -------------------------------------------------------------------------
 	// Post Slug Change Detection
 	// -------------------------------------------------------------------------
@@ -207,18 +362,8 @@ class Redirect_On_Slug_Change {
 		);
 
 		$current_user_id = get_current_user_id();
-		$author_id       = $current_user_id ? $current_user_id : 1;
 
-		$redirect_id = srm_create_redirect(
-			$old_path,
-			$new_path,
-			$this->get_status_code(),
-			false,
-			'publish',
-			0,
-			$notes,
-			$author_id
-		);
+		$redirect_id = $this->create_slug_change_redirect( $old_path, $new_path, $notes );
 
 		if ( is_wp_error( $redirect_id ) ) {
 			return;
@@ -346,18 +491,8 @@ class Redirect_On_Slug_Change {
 		);
 
 		$current_user_id = get_current_user_id();
-		$author_id       = $current_user_id ? $current_user_id : 1;
 
-		$redirect_id = srm_create_redirect(
-			$old_path,
-			$new_path,
-			$this->get_status_code(),
-			false,
-			'publish',
-			0,
-			$notes,
-			$author_id
-		);
+		$redirect_id = $this->create_slug_change_redirect( $old_path, $new_path, $notes );
 
 		if ( is_wp_error( $redirect_id ) ) {
 			return;
@@ -681,7 +816,9 @@ class Redirect_On_Slug_Change {
 		$btn_label      = wp_json_encode( __( "Don't create redirect", 'prc-schema-seo' ) );
 
 		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- All JS string values are wp_json_encode'd.
-		wp_add_inline_script( 'inline-edit-tax', '
+		wp_add_inline_script(
+			'inline-edit-tax',
+			'
 		(function($) {
 			if (!$) return;
 			$(document).ajaxComplete(function(event, xhr, settings) {
@@ -753,7 +890,8 @@ class Redirect_On_Slug_Change {
 				});
 			});
 		})(window.jQuery);
-		' );
+		'
+		);
 		// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 

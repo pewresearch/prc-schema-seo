@@ -529,7 +529,6 @@ Return ONLY a JSON object with these exact keys and string values: %s',
 
 			$response = $builder
 				->using_system_instruction( $system_instructions )
-				->using_temperature( 0.4 )
 				->using_model_preference( ...\WordPress\AI\get_preferred_models_for_text_generation() )
 				->as_json_response( $json_schema )
 				->generate_text();
@@ -569,6 +568,21 @@ Return ONLY a JSON object with these exact keys and string values: %s',
 			foreach ( $requested_fields as $key => $desc ) {
 				if ( isset( $suggestions[ $key ] ) ) {
 					$filtered[ $key ] = $suggestions[ $key ];
+				}
+			}
+
+			if ( function_exists( '\PRC\Platform\AI\Utils\evaluate_generate_output' ) && ! empty( $filtered ) ) {
+				$encoded = wp_json_encode( $filtered );
+				$guard   = \PRC\Platform\AI\Utils\evaluate_generate_output(
+					false === $encoded ? '' : $encoded,
+					$prompt,
+					'seo'
+				);
+				if ( is_wp_error( $guard ) ) {
+					return array(
+						'error'       => $guard->get_error_message(),
+						'suggestions' => new \stdClass(),
+					);
 				}
 			}
 

@@ -164,7 +164,7 @@ class Template_Context {
 		// Blog page (posts page) - handles both:
 		// 1. "Your latest posts" as front page (is_front_page() && is_home())
 		// 2. Separate blog page when static front page is set (is_home() && !is_front_page())
-		if ( \PRC\BlockUtils\is_publications() ) {
+		if ( \PRC\Primitives\BlockUtils\is_publications() ) {
 			// do_action('qm/debug', 'is_publications()');
 			return array(
 				'type'      => self::CONTEXT_BLOG,
