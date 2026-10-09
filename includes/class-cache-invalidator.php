@@ -46,6 +46,8 @@ class Cache_Invalidator {
 		$this->loader->add_action( 'wp_trash_post', $this, 'maybe_clear_contact_cache_on_staff_delete', 10, 1 );
 		// Invalidate cache when art direction metadata updates (social images).
 		$this->loader->add_action( 'updated_post_meta', $this, 'maybe_clear_cache_on_art_direction_update', 10, 4 );
+		$this->loader->add_action( 'added_post_meta', $this, 'maybe_clear_cache_on_art_direction_update', 10, 4 );
+		$this->loader->add_action( 'deleted_post_meta', $this, 'maybe_clear_cache_on_art_direction_update', 10, 4 );
 
 		// Invalidate contact cache when staff employment status changes (staff-type taxonomy).
 		$this->loader->add_action( 'set_object_terms', $this, 'maybe_clear_contact_cache_on_staff_type_change', 10, 6 );
@@ -91,16 +93,21 @@ class Cache_Invalidator {
 	}
 
 	/**
-	 * Clear cache when art direction metadata is updated.
+	 * Clear cache when art direction or another watched metadata key changes.
 	 *
-	 * @param int    $meta_id    ID of updated metadata entry.
-	 * @param int    $post_id    Post ID.
-	 * @param string $meta_key   Meta key.
-	 * @param mixed  $meta_value Meta value.
+	 * @param int|array $meta_id    ID of the changed metadata entry (or IDs on delete).
+	 * @param int       $post_id    Post ID.
+	 * @param string    $meta_key   Meta key.
+	 * @param mixed     $meta_value Meta value.
 	 */
-	public function maybe_clear_cache_on_art_direction_update( $meta_id, $post_id, $meta_key, $meta_value ) {
-		// Only clear if artDirection meta key is updated.
-		if ( 'artDirection' !== $meta_key ) {
+	public function maybe_clear_cache_on_art_direction_update( $meta_id, $post_id, $meta_key, $meta_value = null ) {
+		/**
+		 * Filters the post meta keys whose changes clear the cached SEO data.
+		 *
+		 * @param string[] $meta_keys Meta keys. Defaults to `artDirection` (social images).
+		 */
+		$watched_keys = (array) apply_filters( 'prc_schema_seo_cache_meta_keys', array( 'artDirection' ) );
+		if ( ! in_array( $meta_key, $watched_keys, true ) ) {
 			return;
 		}
 

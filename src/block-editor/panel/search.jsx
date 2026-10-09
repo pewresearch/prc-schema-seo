@@ -28,6 +28,8 @@ import { CharacterCounter } from '@prc/components';
 /**
  * Internal Dependencies
  */
+import useFallbackTitle from './use-fallback-title';
+
 const isAIEnabled =
 	typeof window !== 'undefined' &&
 	typeof window.PRCSchemaSEOAI !== 'undefined' &&
@@ -341,13 +343,7 @@ function Search({ seoData, update }) {
 		[]
 	);
 
-	const postTitle = useSelect(
-		(select) =>
-			decodeEntities(
-				select('core/editor').getEditedPostAttribute('title') || ''
-			),
-		[]
-	);
+	const fallbackTitle = useFallbackTitle();
 
 	const [localGscData, setLocalGscData] = useState(null);
 	const gscData = localGscData || seoData?.gsc_index_status;
@@ -381,7 +377,7 @@ function Search({ seoData, update }) {
 				<VStack spacing="2">
 					<TextControl
 						label={__('SEO Title', 'prc-schema-seo')}
-						placeholder={postTitle}
+						placeholder={fallbackTitle}
 						value={decodeEntities((seoData && seoData.title) || '')}
 						onChange={(v) => update('title', v.slice(0, MAX_TITLE))}
 						help={

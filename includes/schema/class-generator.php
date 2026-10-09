@@ -201,6 +201,17 @@ class Generator {
 		$seo_data = $this->seo_metadata->get_seo_data( $post_id );
 		$seo_data = $this->seo_metadata->resolve_tokens( $seo_data, $post_id );
 
+		/**
+		 * Filters the title used for structured data (names and headlines).
+		 *
+		 * Unlike `prc_schema_seo_title`, this runs before SERP title patterns, so
+		 * structured data does not get the site-name suffix.
+		 *
+		 * @param string $title   Resolved SEO title.
+		 * @param int    $post_id Post ID.
+		 */
+		$seo_data['title'] = apply_filters( 'prc_schema_seo_schema_title', $seo_data['title'], $post_id );
+
 		// Build schema array, with the default website schema first.
 		$schemas = array(
 			$this->generate_website_schema(),

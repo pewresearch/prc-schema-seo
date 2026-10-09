@@ -20,6 +20,8 @@ import { CharacterCounter } from '@prc/components';
 /**
  * Internal Dependencies
  */
+import useFallbackTitle from './use-fallback-title';
+
 const isAIEnabled =
 	typeof window !== 'undefined' &&
 	typeof window.PRCSchemaSEOAI !== 'undefined' &&
@@ -69,15 +71,9 @@ function Social({ seoData, update }) {
 		[]
 	);
 
-	const postTitle = useSelect(
-		(select) =>
-			decodeEntities(
-				select('core/editor').getEditedPostAttribute('title') || ''
-			),
-		[]
-	);
+	const fallbackTitle = useFallbackTitle();
 
-	const resolvedTitle = postTitle;
+	const resolvedTitle = fallbackTitle;
 	const resolvedDescription = excerpt;
 
 	return (

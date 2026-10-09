@@ -11,10 +11,12 @@ import { decodeEntities } from '@wordpress/html-entities';
  *
  * @param {import('..').SEOData|undefined} seoData Raw per-post SEO meta.
  * @param {import('..').PostRecord|undefined} post Current post record from editor store.
+ * @param {string} [fallbackTitle] Title used when no SEO or social title is set (campaign subject line, else post title).
  * @returns {{title:string,description:string,ogTitle:string,ogDescription:string,twitterTitle:string,twitterDescription:string,slug:string,images:{facebook:string|null,twitter:string|null}}} Derived preview data.
  */
-export function derivePreviewData(seoData, post) {
-	const title = decodeEntities(seoData?.title || post?.title?.raw || '');
+export function derivePreviewData(seoData, post, fallbackTitle) {
+	const defaultTitle = fallbackTitle || post?.title?.raw || '';
+	const title = decodeEntities(seoData?.title || defaultTitle);
 	let description = seoData?.description;
 	if (!description) {
 		const rawContent = post?.content?.raw || '';
@@ -23,9 +25,8 @@ export function derivePreviewData(seoData, post) {
 		// Trim to ~160 chars for Google preview (~30 words)
 		description = description.split(/\s+/).slice(0, 30).join(' ');
 	}
-	const rawPostTitle = post?.title?.raw || '';
 	const postExcerpt = post?.excerpt?.raw || '';
-	const ogTitle = decodeEntities(seoData?.og_title || rawPostTitle);
+	const ogTitle = decodeEntities(seoData?.og_title || defaultTitle);
 	const ogDescription = decodeEntities(
 		seoData?.og_description || postExcerpt || ''
 	);

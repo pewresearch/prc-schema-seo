@@ -30,6 +30,7 @@ import {
  * Internal Dependencies
  */
 import { derivePreviewData } from './preview-utils';
+import useFallbackTitle from '../use-fallback-title';
 
 /**
  * PreviewsModal
@@ -45,7 +46,8 @@ export default function PreviewsModal({ seoData, post, onClose }) {
 	const displayName = branding.displayName || siteName;
 	const twitterUsername = branding.twitterUsername ?? '';
 	const blueskyHandle = branding.blueskyHandle ?? '';
-	const data = derivePreviewData(seoData, post);
+	const fallbackTitle = useFallbackTitle();
+	const data = derivePreviewData(seoData, post, fallbackTitle);
 	const previewUrl = seoData?.canonical_url || post?.link || siteUrl;
 
 	const tabs = [

@@ -248,6 +248,16 @@ class Metadata {
 	public function apply_display_patterns( $seo_data, $post_id ) {
 		$seo_data['title'] = apply_filters( 'prc_schema_seo_title', $seo_data['title'], $post_id );
 
+		if ( ! empty( $seo_data['og_title'] ) ) {
+			/**
+			 * Filters the Open Graph and Twitter title at output time.
+			 *
+			 * @param string $og_title Resolved social title.
+			 * @param int    $post_id  Post ID.
+			 */
+			$seo_data['og_title'] = apply_filters( 'prc_schema_seo_og_title', $seo_data['og_title'], $post_id );
+		}
+
 		$seo_data['description'] = apply_filters(
 			'prc_schema_seo_description_fallback',
 			$seo_data['description'],
