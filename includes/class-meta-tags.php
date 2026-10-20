@@ -31,6 +31,11 @@ class Meta_Tags {
 	const CACHE_TTL = Cache_Keys::TTL;
 
 	/**
+	 * Priority for the core `get_canonical_url` filter.
+	 */
+	const CANONICAL_FILTER_PRIORITY = 100;
+
+	/**
 	 * Loader instance.
 	 *
 	 * @var Loader
@@ -74,7 +79,8 @@ class Meta_Tags {
 		$this->loader->add_filter( 'pre_get_document_title', $this, 'filter_document_title', 10 );
 
 		// Filter WordPress core canonical URL for singular posts (WordPress handles output via rel_canonical()).
-		$this->loader->add_filter( 'get_canonical_url', $this, 'filter_canonical_url', 10, 2 );
+		// Must run after Nelio A/B Testing (priority 50), which resets every singular canonical to get_permalink().
+		$this->loader->add_filter( 'get_canonical_url', $this, 'filter_canonical_url', self::CANONICAL_FILTER_PRIORITY, 2 );
 
 		// Filter WordPress core robots meta tag (WordPress handles output via wp_robots()).
 		$this->loader->add_filter( 'wp_robots', $this, 'filter_robots', 10 );
