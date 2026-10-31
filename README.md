@@ -24,10 +24,9 @@ Provides schema generation, SEO meta tags, primary term management, preview pane
 
 **Required plugins** (declared in the plugin header `Requires Plugins` field):
 
-- `prc-scripts` — provides `@prc/components`, `@prc/icons`, and shared webpack configuration
-- `prc-post-publish-pipeline` — sync and async post lifecycle hooks used for cache invalidation, IndexNow, and Search Console
+- `prc-shared` — provides `@prc/components`, `@prc/icons`, and shared webpack configuration
 
-The plugin no longer depends on `prc-platform-core`. All shared JS components and scripts are sourced from `prc-scripts`.
+Sync and async post lifecycle hooks for cache invalidation, IndexNow, and Search Console come from the post publish pipeline in `prc/primitives`, which the mu-plugin loader boots. The plugin no longer depends on `prc-platform-core`. All shared JS components and scripts are sourced from `prc-shared`.
 
 ## Parse.ly (`wp-parsely`)
 

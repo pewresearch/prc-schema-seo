@@ -504,6 +504,22 @@ class Meta_Tags {
 			}
 		}
 
+		$html = $this->build_meta_html( $this->build_post_meta( $post_id ) );
+
+		if ( Cache_Keys::caching_enabled() ) {
+			Cache_Keys::set( $cache_key, $html, self::CACHE_GROUP, self::CACHE_TTL );
+		}
+
+		return $html;
+	}
+
+	/**
+	 * Build the meta tag map for a post, without reading or writing the cache.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return array<string, string|string[]> Meta tag name => content.
+	 */
+	private function build_post_meta( int $post_id ): array {
 		$data = $this->seo_metadata->get_seo_data( $post_id );
 		$data = $this->seo_metadata->resolve_for_display( $data, $post_id );
 
@@ -590,15 +606,7 @@ class Meta_Tags {
 			}
 		}
 
-		$meta = apply_filters( 'prc_schema_seo_meta_tags', $meta, $post_id, $data );
-
-		$html = $this->build_meta_html( $meta );
-
-		if ( Cache_Keys::caching_enabled() ) {
-			Cache_Keys::set( $cache_key, $html, self::CACHE_GROUP, self::CACHE_TTL );
-		}
-
-		return $html;
+		return apply_filters( 'prc_schema_seo_meta_tags', $meta, $post_id, $data );
 	}
 
 	/**
@@ -617,7 +625,22 @@ class Meta_Tags {
 
 		Cache_Keys::prime_post_level( (int) $post_id );
 
-		$html = $this->warm_post_cache( $post_id );
+		/**
+		 * Filters per-request meta tag overrides for a singular post.
+		 *
+		 * Overrides depend on the request (for example a query arg), so the
+		 * result is built uncached and never written to the post's meta cache.
+		 *
+		 * @param array<string, string> $overrides Meta tag name => content.
+		 * @param int                   $post_id   Post ID.
+		 */
+		$overrides = apply_filters( 'prc_schema_seo_request_meta_overrides', array(), (int) $post_id );
+
+		if ( ! empty( $overrides ) && post_type_supports( get_post_type( $post_id ), 'prc-schema-seo' ) ) {
+			$html = $this->build_meta_html( array_merge( $this->build_post_meta( $post_id ), $overrides ) );
+		} else {
+			$html = $this->warm_post_cache( $post_id );
+		}
 		if ( '' === $html ) {
 			return;
 		}
