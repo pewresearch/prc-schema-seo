@@ -741,6 +741,21 @@ class Redirect_On_Slug_Change {
 	}
 
 	/**
+	 * Redirect managers may delete any redirect. Other editors may only undo
+	 * redirects their own slug change created.
+	 *
+	 * @param \WP_Post $redirect The redirect_rule post.
+	 * @return bool
+	 */
+	private function can_delete_redirect( $redirect ) {
+		if ( current_user_can( 'delete_post', $redirect->ID ) ) {
+			return true;
+		}
+		return current_user_can( 'edit_posts' )
+			&& get_current_user_id() === (int) $redirect->post_author;
+	}
+
+	/**
 	 * Handle REST request to delete a redirect rule.
 	 *
 	 * @param \WP_REST_Request $request REST request.
@@ -756,6 +771,14 @@ class Redirect_On_Slug_Change {
 				'invalid_redirect',
 				__( 'The specified redirect does not exist.', 'prc-schema-seo' ),
 				array( 'status' => 404 )
+			);
+		}
+
+		if ( ! $this->can_delete_redirect( $post ) ) {
+			return new \WP_Error(
+				'rest_forbidden',
+				__( 'You cannot delete this redirect.', 'prc-schema-seo' ),
+				array( 'status' => 403 )
 			);
 		}
 
@@ -956,15 +979,14 @@ class Redirect_On_Slug_Change {
 			wp_send_json_error( __( 'Security check failed.', 'prc-schema-seo' ), 403 );
 		}
 
-		// Verify capabilities.
-		if ( ! current_user_can( 'edit_posts' ) ) {
-			wp_send_json_error( __( 'Insufficient permissions.', 'prc-schema-seo' ), 403 );
-		}
-
 		// Verify the post exists and is a redirect_rule.
 		$post = get_post( $redirect_id );
 		if ( ! $post || 'redirect_rule' !== $post->post_type ) {
 			wp_send_json_error( __( 'Redirect not found.', 'prc-schema-seo' ), 404 );
+		}
+
+		if ( ! $this->can_delete_redirect( $post ) ) {
+			wp_send_json_error( __( 'Insufficient permissions.', 'prc-schema-seo' ), 403 );
 		}
 
 		$deleted = wp_delete_post( $redirect_id, true );

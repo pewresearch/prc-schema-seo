@@ -1,5 +1,17 @@
 # PRC Schema SEO Changelog
 
+## 1.7.0
+
+### Minor Changes
+
+- 936ee90: Image blocks have a new Sharing toggle. When it is on, visitors see a share button in the image's lower-right corner on hover. The button opens Facebook, X, Threads, Bluesky, and Download options. Shared links point to the page, and the social card shows that image.
+
+### Patch Changes
+
+- 867486e: The post publish pipeline now comes from `plugins/prc-shared/primitives/` instead of the `prc-post-publish-pipeline` plugin. These plugins no longer list that plugin in `Requires Plugins`. Publish, update, unpublish, and trash hooks fire the same way as before. The mu-plugin loader boots the pipeline once, so PRC Shared now runs it on the platform.
+- 1d96db5: These plugins now require the renamed PRC Shared plugin, `prc-shared`, instead of `prc-scripts`.
+- f8730c1: PRC Shared now loads the shared PRC primitives library for every PRC plugin when the plugins run outside PRC Platform. Plugins no longer bundle their own copy, so standalone installs need PRC Shared active.
+
 All notable changes to the PRC Schema SEO plugin will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
