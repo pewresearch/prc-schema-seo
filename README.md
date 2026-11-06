@@ -30,7 +30,7 @@ Sync and async post lifecycle hooks for cache invalidation, IndexNow, and Search
 
 ## Parse.ly (`wp-parsely`)
 
-The platform uses Automattic’s [wp-parsely](https://github.com/Parsely/wp-parsely) on VIP. `prc-schema-seo` implements `Parsely_Integration` (`includes/class-parsely-integration.php`) so Pew SEO data (canonical URL, titles, authors, sections, keywords) is merged into Parse.ly’s metadata pipeline instead of maintaining a parallel tag system.
+The platform uses Automattic’s [wp-parsely](https://github.com/Parsely/wp-parsely) on VIP. `prc-schema-seo` implements `Parsely_Integration` (`includes/class-parsely-integration.php`) so Pew SEO data (canonical URL, authors, sections, keywords; the Parse.ly headline is the post title) is merged into Parse.ly’s metadata pipeline instead of maintaining a parallel tag system.
 
 ### How it works
 
@@ -56,6 +56,7 @@ Home, term, and post type archive Parse.ly HTML fragments are cached with `wp_ca
 ### Operational notes
 
 - **Canonical**: Changes that affect `prc_schema_seo_canonical_url` or stored SEO data affect Parse.ly link and `url` fields after cache invalidation or TTL expiry.
+- **Headline**: The Parse.ly `headline` (`parsely-title`) for singular posts is the WordPress post title, not the SEO title (`Parsely_Integration::get_parsely_headline()`). It reads the stored `post_title` without `the_title` filters (no "Private:"/"Protected:" prefix, no curly-quote texturizing), strips tags, decodes entities to plain text, and collapses whitespace; `wp-parsely` escapes on output. A post with an empty title keeps `wp-parsely`'s own headline. The result is cached with the post's Parse.ly metadata and cleared on `save_post`.
 - **Keywords / section**: Built from category, formats, research-teams, and internal markers (`get_parsely_tag_tokens`, `get_parsely_section`); empty section is omitted so `articleSection` is not sent when there is no primary category name.
 - **Troubleshooting**: If Parse.ly tags are missing locally, confirm environment type is `local` (for MU loader), that `wp-parsely` is active, and that the current template is not one where insertion is intentionally disabled (see table above).
 

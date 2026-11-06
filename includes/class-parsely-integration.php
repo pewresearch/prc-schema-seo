@@ -87,7 +87,7 @@ class Parsely_Integration {
 	/**
 	 * Force https Parse.ly canonical URLs site-wide.
 	 *
-	 * wp-parsely defaults `force_https_canonicals` to false, which rewrites
+	 * The wp-parsely plugin defaults `force_https_canonicals` to false, which rewrites
 	 * non-post `get_current_url()` results from https → http. Pew Research
 	 * Center is https-only; manage the option so CPT archives and other
 	 * non-post contexts never emit http parsely-link values.
@@ -106,6 +106,7 @@ class Parsely_Integration {
 	/**
 	 * Enable VIP's WP Parsely integration on local environments.
 	 *
+	 * @param bool $load_mu Whether to load the VIP Parse.ly MU integration.
 	 * @return bool
 	 */
 	public function enable_parsely_mu_on_local( $load_mu ) {
@@ -174,10 +175,13 @@ class Parsely_Integration {
 			}
 		}
 
-		$data = $this->seo_metadata->get_seo_data( $post_id );
-		if ( ! empty( $data['title'] ) ) {
-			$metadata['headline'] = $data['title'];
+		// Post title, not the SEO title. Leave wp-parsely's own headline when the post has no title.
+		$headline = $this->get_parsely_headline( $post );
+		if ( '' !== $headline ) {
+			$metadata['headline'] = $headline;
 		}
+
+		$data = $this->seo_metadata->get_seo_data( $post_id );
 
 		$data_resolved = $this->seo_metadata->resolve_for_display( $data, $post_id );
 		$canonical     = ! empty( $data_resolved['canonical_url'] ) ? $data_resolved['canonical_url'] : get_permalink( $post_id );
@@ -240,6 +244,25 @@ class Parsely_Integration {
 		}
 
 		return $metadata;
+	}
+
+	/**
+	 * Plain-text WordPress post title for the Parse.ly headline.
+	 *
+	 * Uses the stored `post_title` directly: no `the_title` filters (which add
+	 * "Private:" / "Protected:" prefixes and texturize quotes) and no SEO title.
+	 * Tags are stripped and entities decoded because wp-parsely escapes on output
+	 * (JSON-LD or `esc_attr`); stored titles carry `&amp;`-style entities that
+	 * would otherwise be double-encoded.
+	 *
+	 * @param \WP_Post $post Post object.
+	 * @return string Plain-text title, or an empty string when the post has none.
+	 */
+	private function get_parsely_headline( \WP_Post $post ): string {
+		$title = wp_strip_all_tags( (string) $post->post_title );
+		$title = html_entity_decode( $title, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		$title = preg_replace( '/\s+/u', ' ', $title );
+		return trim( (string) $title );
 	}
 
 	/**
@@ -333,7 +356,7 @@ class Parsely_Integration {
 	/**
 	 * Output Parsely meta tags for post type archives (e.g. /datasets/).
 	 *
-	 * wp-parsely's Category_Builder uses the post type slug as headline and
+	 * The wp-parsely Category_Builder uses the post type slug as headline and
 	 * `get_current_url()` for the link; with the plugin default
 	 * `force_https_canonicals=false` that becomes an http:// URL. PRC owns
 	 * this context so the label and https archive link are correct.
