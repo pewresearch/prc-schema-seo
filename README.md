@@ -132,6 +132,8 @@ add_filter( 'prc_schema_seo_schema_type_default', function( $type, $post_type, $
 | `prc_schema_seo_webpage_graph_item` | `(WebPage $webpage, int $post_id, array $seo_data)`                      | Adjust the WebPage item specifically as a graph item reference before the full schema merge. |
 | `prc_schema_seo_breadcrumb_schema`  | `(BreadcrumbList $list, int $post_id, array $seo_data)`                  | Adjust the BreadcrumbList schema for a post.                                                 |
 
+Staff members with an ORCID iD (`orcid` post meta from `prc-staff-bylines`) get the iD in both Person schema on staff pages and Article `author` entries. The generator adds the ORCID profile URL to `sameAs` and an `identifier` `PropertyValue` (`propertyID: ORCID`). Guest authors have no ORCID. Changes to the `orcid` meta clear the staff post's cached schema (see `prc_schema_seo_cache_meta_keys`).
+
 ### Schema Objects — Organization
 
 | Filter                                | Signature                           | Purpose                                                                                                                                    |

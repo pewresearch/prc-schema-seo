@@ -70,6 +70,7 @@ class Parsely_Integration {
 		$this->loader->add_filter( 'wp_parsely_managed_options', $this, 'force_https_canonicals' );
 		$this->loader->add_filter( 'wp_parsely_metadata', $this, 'filter_wp_parsely_metadata', 10, 3 );
 		$this->loader->add_filter( 'wp_parsely_permalink', $this, 'filter_wp_parsely_permalink', 10, 3 );
+		$this->loader->add_filter( 'wp_parsely_load_js_tracker', $this, 'filter_wp_parsely_load_js_tracker' );
 
 		// PRC owns parsely-* output on the front page, term archives, and CPT archives.
 		// wp-parsely's own renderer is suppressed for these contexts via
@@ -117,6 +118,59 @@ class Parsely_Integration {
 	}
 
 	/**
+	 * Load the Parse.ly tracker only for readers on production.
+	 *
+	 * Staging and test environments copy the production Parse.ly site ID, so
+	 * their traffic would count as production page views. Signed renders
+	 * (PDF and screenshot services) see drafts and scheduled posts as
+	 * published, so wp-parsely's status check passes before the post is live.
+	 *
+	 * @param bool $display Whether wp-parsely will enqueue the tracker.
+	 * @return bool
+	 */
+	public function filter_wp_parsely_load_js_tracker( $display ) {
+		if ( ! $display ) {
+			return $display;
+		}
+		if ( 'production' !== wp_get_environment_type() ) {
+			return false;
+		}
+		return ! self::is_signed_render();
+	}
+
+	/**
+	 * Whether a render service, not a reader, made this request.
+	 *
+	 * @return bool
+	 */
+	private static function is_signed_render(): bool {
+		return function_exists( '\\PRC\\Primitives\\Signed_Fetch\\is_signed_render' )
+			&& \PRC\Primitives\Signed_Fetch\is_signed_render();
+	}
+
+	/**
+	 * Whether Parse.ly may describe this post on the current request.
+	 *
+	 * Previews, signed renders, and posts whose stored status is not
+	 * trackable get no metadata, so Parse.ly never records a draft or
+	 * scheduled date as the publish date.
+	 *
+	 * @param \WP_Post $post Post object.
+	 * @return bool
+	 */
+	private function is_trackable_view( \WP_Post $post ): bool {
+		if ( self::is_signed_render() || is_preview() ) {
+			return false;
+		}
+
+		$statuses = class_exists( '\\Parsely\\Parsely' )
+			? \Parsely\Parsely::get_trackable_statuses( $post )
+			: array( 'publish' );
+
+		return in_array( get_post_status( (int) $post->ID ), $statuses, true );
+	}
+
+	/**
 	 * Map PRC SEO and platform data onto wp-parsely's metadata array.
 	 *
 	 * On contexts where PRC emits its own parsely-* tags (front page, term
@@ -156,6 +210,10 @@ class Parsely_Integration {
 
 		if ( ! $post instanceof \WP_Post ) {
 			return $metadata;
+		}
+
+		if ( ! $this->is_trackable_view( $post ) ) {
+			return array();
 		}
 
 		$post_id   = (int) $post->ID;

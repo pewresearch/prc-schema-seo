@@ -105,14 +105,14 @@ class Generator {
 			$this->org_config_cache = apply_filters(
 				'prc_schema_seo_organization_config',
 				array(
-					'name'                   => 'Pew Research Center',
-					'url'                    => 'https://www.pewresearch.org', // pragma: allowlist secret — public site URL default, not an API key.
-					'alternate_names'        => array( 'Pew Research', 'PRC' ),
-					'description'            => 'Pew Research Center is a nonpartisan, nonadvocacy fact tank that informs the public about the issues, attitudes and trends shaping the world.',
-					'slogan'                 => 'Numbers, Facts and Trends Shaping Your World',
-					'founding_date'          => '2004-07-01',
-					'nonprofit_status'       => 'https://schema.org/Nonprofit501c3',
-					'publishing_principles'  => 'https://www.pewresearch.org/about/our-mission/', // pragma: allowlist secret — public URL default.
+					'name'                  => 'Pew Research Center',
+					'url'                   => 'https://www.pewresearch.org', // pragma: allowlist secret — public site URL default, not an API key.
+					'alternate_names'       => array( 'Pew Research', 'PRC' ),
+					'description'           => 'Pew Research Center is a nonpartisan, nonadvocacy fact tank that informs the public about the issues, attitudes and trends shaping the world.',
+					'slogan'                => 'Numbers, Facts and Trends Shaping Your World',
+					'founding_date'         => '2004-07-01',
+					'nonprofit_status'      => 'https://schema.org/Nonprofit501c3',
+					'publishing_principles' => 'https://www.pewresearch.org/about/our-mission/', // pragma: allowlist secret — public URL default.
 				)
 			);
 		}
@@ -120,6 +120,11 @@ class Generator {
 		return $this->org_config_cache;
 	}
 
+	/**
+	 * Get the sameAs URLs for the Organization / WebSite schema.
+	 *
+	 * @return array
+	 */
 	public function get_same_as_array() {
 		/**
 		 * Filter sameAs social profile URLs for Organization / WebSite schema.
@@ -223,19 +228,19 @@ class Generator {
 		// Add WebPage schema for this specific page (referenced by Article via mainEntityOfPage).
 		$schemas[] = $this->generate_webpage_graph_item( $post, $seo_data );
 
-		// Add post-specific schema based on type
+		// Add post-specific schema based on type.
 		$schemas[] = $this->generate_post_schema( $post, $seo_data );
 
-		// Add breadcrumb schema if available
+		// Add breadcrumb schema if available.
 		$breadcrumb_schema = $this->generate_breadcrumb_schema( $post->ID, $seo_data );
 		if ( $breadcrumb_schema ) {
 			$schemas[] = $breadcrumb_schema;
 		}
 
-		// Allow filtering of schema data
+		// Allow filtering of schema data.
 		$schemas = apply_filters( 'prc_schema_seo_schema_data', $schemas, $post_id, $seo_data );
 
-		// Convert to JSON-LD
+		// Convert to JSON-LD.
 		$json_ld = $this->schemas_to_json_ld( $schemas );
 
 		if ( Cache_Keys::caching_enabled() ) {
@@ -245,6 +250,11 @@ class Generator {
 		return $json_ld;
 	}
 
+	/**
+	 * Generate the WebSite schema.
+	 *
+	 * @return \Spatie\SchemaOrg\WebSite
+	 */
 	public function generate_website_schema() {
 		$search_url_template = home_url( '/search/{search_term_string}' );
 
@@ -703,6 +713,11 @@ class Generator {
 			$person->sameAs( array_column( $staff->social_profiles, 'url' ) );
 		}
 
+		// Add the ORCID iD as an identifier and sameAs profile URL.
+		if ( $staff ) {
+			self::apply_orcid( $person, $staff->orcid );
+		}
+
 		// Add description.
 		if ( ! empty( $seo_data['description'] ) ) {
 			$person->description( $seo_data['description'] );
@@ -717,6 +732,36 @@ class Generator {
 
 		// Allow filtering of person schema before return.
 		return apply_filters( 'prc_schema_seo_person_schema', $person, $post->ID, $seo_data );
+	}
+
+	/**
+	 * Add a staff member's ORCID iD to a Person schema.
+	 *
+	 * Adds the profile URL to `sameAs` (merged with existing URLs) and an
+	 * `identifier` PropertyValue. Does nothing when the iD is empty.
+	 *
+	 * @param Person       $person Person schema object.
+	 * @param string|false $orcid  Canonical ORCID iD, or false when unset.
+	 */
+	public static function apply_orcid( Person $person, $orcid ): void {
+		if ( ! is_string( $orcid ) || '' === $orcid ) {
+			return;
+		}
+
+		$url = class_exists( '\PRC\Platform\Staff_Bylines\Orcid' )
+			? \PRC\Platform\Staff_Bylines\Orcid::url( $orcid )
+			: 'https://orcid.org/' . $orcid;
+
+		$same_as = $person->getProperty( 'sameAs', array() );
+		$same_as = is_array( $same_as ) ? $same_as : array( $same_as );
+		$person->sameAs( array_values( array_unique( array_merge( $same_as, array( $url ) ) ) ) );
+
+		$person->identifier(
+			Schema::propertyValue()
+				->propertyID( 'ORCID' )
+				->value( $orcid )
+				->url( $url )
+		);
 	}
 
 	/**
@@ -873,7 +918,7 @@ class Generator {
 	 * @return Article
 	 */
 	private function generate_article_schema( $post, $seo_data, $schema_type ) {
-		// Create appropriate article type
+		// Create appropriate article type.
 		switch ( $schema_type ) {
 			case 'NewsArticle':
 				$article = Schema::newsArticle();
@@ -892,14 +937,14 @@ class Generator {
 
 		$org_config = $this->get_org_config();
 
-		// Basic properties
+		// Basic properties.
 		$article
 			->headline( $seo_data['title'] )
 			->url( get_permalink( $post ) )
 			->datePublished( get_the_date( 'c', $post ) )
 			->dateModified( get_the_modified_date( 'c', $post ) )
 			->publisher(
-			Schema::organization()
+				Schema::organization()
 				->setProperty( '@id', home_url( '/#organization' ) )
 				->name( $org_config['name'] )
 				->url( $org_config['url'] )
@@ -909,14 +954,14 @@ class Generator {
 						->width( 600 )
 						->height( 60 )
 				)
-		);
+			);
 
-		// Description
+		// Description.
 		if ( ! empty( $seo_data['description'] ) ) {
 			$article->description( $seo_data['description'] );
 		}
 
-		// Image
+		// Image.
 		if ( ! empty( $seo_data['og_image'] ) ) {
 			$image_url = wp_get_attachment_image_url( $seo_data['og_image'], 'full' );
 			if ( $image_url ) {
@@ -936,7 +981,7 @@ class Generator {
 			$article->about( $about_terms );
 		}
 
-		// Author - use byline system if available
+		// Author - use byline system if available.
 		$authors = array();
 		if ( class_exists( '\PRC\Platform\Staff_Bylines\Bylines' ) ) {
 			$bylines_instance = new \PRC\Platform\Staff_Bylines\Bylines( $post->ID );
@@ -955,12 +1000,14 @@ class Generator {
 
 					$person->worksFor( $org_config['name'] );
 
+					self::apply_orcid( $person, $byline['orcid'] ?? false );
+
 					$authors[] = $person;
 				}
 			}
 		}
 
-		// Fallback to post author if no bylines found
+		// Fallback to post author if no bylines found.
 		if ( empty( $authors ) ) {
 			$author_id = $post->post_author;
 			if ( $author_id ) {
@@ -969,7 +1016,7 @@ class Generator {
 			}
 		}
 
-		// Set author(s) on article
+		// Set author(s) on article.
 		if ( ! empty( $authors ) ) {
 			if ( count( $authors ) === 1 ) {
 				$article->author( $authors[0] );
@@ -980,13 +1027,13 @@ class Generator {
 
 		$article->mainEntityOfPage( get_permalink( $post ) );
 
-		// Add primary category as articleSection if available
+		// Add primary category as articleSection if available.
 		$primary_category = $this->get_primary_term_name( $post->ID, 'category', $seo_data );
 		if ( $primary_category ) {
 			$article->articleSection( $primary_category );
 		}
 
-		// Add custom schema properties
+		// Add custom schema properties.
 		if ( ! empty( $seo_data['custom_schema'] ) ) {
 			foreach ( $seo_data['custom_schema'] as $key => $value ) {
 				$article->setProperty( $key, $value );
@@ -1018,12 +1065,12 @@ class Generator {
 			->dateModified( get_the_modified_date( 'c', $post ) )
 			->isPartOf( array( '@id' => home_url( '/#website' ) ) );
 
-		// Description
+		// Description.
 		if ( ! empty( $seo_data['description'] ) ) {
 			$webpage->description( $seo_data['description'] );
 		}
 
-		// Image
+		// Image.
 		if ( ! empty( $seo_data['og_image'] ) ) {
 			$image_url = wp_get_attachment_image_url( $seo_data['og_image'], 'full' );
 			if ( $image_url ) {
@@ -1069,12 +1116,12 @@ class Generator {
 			->dateModified( get_the_modified_date( 'c', $post ) )
 			->isPartOf( array( '@id' => home_url( '/#website' ) ) );
 
-		// Description
+		// Description.
 		if ( ! empty( $seo_data['description'] ) ) {
 			$webpage->description( $seo_data['description'] );
 		}
 
-		// Image
+		// Image.
 		if ( ! empty( $seo_data['og_image'] ) ) {
 			$image_url = wp_get_attachment_image_url( $seo_data['og_image'], 'full' );
 			if ( $image_url ) {
@@ -1084,7 +1131,7 @@ class Generator {
 			}
 		}
 
-		// Add custom schema properties
+		// Add custom schema properties.
 		if ( ! empty( $seo_data['custom_schema'] ) ) {
 			foreach ( $seo_data['custom_schema'] as $key => $value ) {
 				$webpage->setProperty( $key, $value );
@@ -1104,32 +1151,32 @@ class Generator {
 	 */
 	private function generate_breadcrumb_schema( $post_id, $seo_data ) {
 		// Build breadcrumb list items using primary terms when available
-		// Include full hierarchical path from top-level ancestor down to primary category
+		// Include full hierarchical path from top-level ancestor down to primary category.
 		$breadcrumbs = array();
 		$position    = 1;
 
-		// Always start with Home
+		// Always start with Home.
 		$breadcrumbs[] = Schema::listItem()
 			->position( $position++ )
 			->name( 'Home' )
 			->item( home_url( '/' ) );
 
-		// Add "research topics" breadcrumb at /topics
+		// Add "research topics" breadcrumb at /topics.
 		$breadcrumbs[] = Schema::listItem()
 			->position( $position++ )
 			->name( 'Research Topics' )
 			->item( home_url( '/topics' ) );
 
-		// Get primary category term ID to traverse hierarchy
+		// Get primary category term ID to traverse hierarchy.
 		$primary_category_id = Primary_Term::get_id( $post_id, 'category', true );
 		if ( $primary_category_id ) {
 			$primary_term = get_term( $primary_category_id, 'category' );
 			if ( $primary_term && ! is_wp_error( $primary_term ) ) {
-				// Get all ancestor term IDs (returns immediate parent first, so reverse for top-down order)
+				// Get all ancestor term IDs (returns immediate parent first, so reverse for top-down order).
 				$ancestor_ids = get_ancestors( $primary_category_id, 'category', 'taxonomy' );
 				$ancestor_ids = array_reverse( $ancestor_ids );
 
-				// Add each ancestor as a breadcrumb from top-level down
+				// Add each ancestor as a breadcrumb from top-level down.
 				foreach ( $ancestor_ids as $ancestor_id ) {
 					$ancestor_term = get_term( $ancestor_id, 'category' );
 					if ( $ancestor_term && ! is_wp_error( $ancestor_term ) ) {
@@ -1140,7 +1187,7 @@ class Generator {
 					}
 				}
 
-				// Add the primary category itself as the final breadcrumb
+				// Add the primary category itself as the final breadcrumb.
 				$breadcrumbs[] = Schema::listItem()
 					->position( $position++ )
 					->name( $primary_term->name )
@@ -1148,7 +1195,7 @@ class Generator {
 			}
 		}
 
-		// Only return breadcrumb schema if we have more than just Home and Research Topics
+		// Only return breadcrumb schema if we have more than just Home and Research Topics.
 		if ( count( $breadcrumbs ) > 1 ) {
 			$breadcrumb_list = Schema::breadcrumbList()->itemListElement( $breadcrumbs );
 
@@ -1173,7 +1220,7 @@ class Generator {
 	 */
 	private function generate_term_breadcrumb_schema( $term ) {
 		$breadcrumbs = array();
-		$position   = 1;
+		$position    = 1;
 
 		$breadcrumbs[] = Schema::listItem()
 			->position( $position++ )
@@ -1181,15 +1228,19 @@ class Generator {
 			->item( home_url( '/' ) );
 
 		// Filterable per-taxonomy intermediate crumb.
-		$intermediate_crumbs = apply_filters( 'prc_schema_seo_term_breadcrumb_intermediate', array(
-			'category' => array(
-				'name' => 'Research Topics',
-				'url'  => home_url( '/topics' ),
+		$intermediate_crumbs = apply_filters(
+			'prc_schema_seo_term_breadcrumb_intermediate',
+			array(
+				'category' => array(
+					'name' => 'Research Topics',
+					'url'  => home_url( '/topics' ),
+				),
 			),
-		), $term );
+			$term 
+		);
 
 		if ( ! empty( $intermediate_crumbs[ $term->taxonomy ] ) ) {
-			$crumb = $intermediate_crumbs[ $term->taxonomy ];
+			$crumb         = $intermediate_crumbs[ $term->taxonomy ];
 			$breadcrumbs[] = Schema::listItem()
 				->position( $position++ )
 				->name( $crumb['name'] )
@@ -1242,7 +1293,7 @@ class Generator {
 			return '';
 		}
 
-		// Build @graph array
+		// Build @graph array.
 		$graph = array();
 		foreach ( $schemas as $schema ) {
 			if ( is_object( $schema ) && method_exists( $schema, 'toArray' ) ) {
@@ -1252,7 +1303,7 @@ class Generator {
 			}
 		}
 
-		// Build JSON-LD structure
+		// Build JSON-LD structure.
 		$json_ld = array(
 			'@context' => 'https://schema.org',
 			'@graph'   => $graph,
@@ -1265,7 +1316,7 @@ class Generator {
 		}
 		$json = wp_json_encode( $json_ld, $json_flags );
 
-		// Wrap in script tag
+		// Wrap in script tag.
 		return sprintf(
 			'<script type="application/ld+json">%s</script>',
 			$json
@@ -1285,29 +1336,29 @@ class Generator {
 	 * @return bool True if structure appears valid.
 	 */
 	public function validate_schema( $json_ld ) {
-		// Check if output is not empty
+		// Check if output is not empty.
 		if ( empty( $json_ld ) ) {
 			return false;
 		}
 
-		// Check if contains script tag
+		// Check if contains script tag.
 		if ( false === strpos( $json_ld, '<script type="application/ld+json">' ) ) {
 			return false;
 		}
 
-		// Extract JSON
+		// Extract JSON.
 		preg_match( '/<script[^>]*>(.*?)<\/script>/s', $json_ld, $matches );
 		if ( empty( $matches[1] ) ) {
 			return false;
 		}
 
-		// Validate JSON
+		// Validate JSON.
 		$json = json_decode( $matches[1], true );
 		if ( json_last_error() !== JSON_ERROR_NONE ) {
 			return false;
 		}
 
-		// Check for required properties
+		// Check for required properties.
 		if ( ! isset( $json['@context'] ) || ! isset( $json['@graph'] ) ) {
 			return false;
 		}

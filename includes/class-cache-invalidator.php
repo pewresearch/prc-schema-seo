@@ -104,9 +104,9 @@ class Cache_Invalidator {
 		/**
 		 * Filters the post meta keys whose changes clear the cached SEO data.
 		 *
-		 * @param string[] $meta_keys Meta keys. Defaults to `artDirection` (social images).
+		 * @param string[] $meta_keys Meta keys. Defaults to `artDirection` (social images) and `orcid` (staff Person schema).
 		 */
-		$watched_keys = (array) apply_filters( 'prc_schema_seo_cache_meta_keys', array( 'artDirection' ) );
+		$watched_keys = (array) apply_filters( 'prc_schema_seo_cache_meta_keys', array( 'artDirection', 'orcid' ) );
 		if ( ! in_array( $meta_key, $watched_keys, true ) ) {
 			return;
 		}
@@ -114,6 +114,15 @@ class Cache_Invalidator {
 		$post_type = get_post_type( $post_id );
 		if ( $post_type && post_type_supports( $post_type, 'prc-schema-seo' ) ) {
 			$this->seo_metadata->clear_cache( $post_id );
+		}
+
+		if ( 'staff' === $post_type ) {
+			$byline_terms = get_the_terms( $post_id, 'bylines' );
+			if ( is_array( $byline_terms ) ) {
+				foreach ( $byline_terms as $byline_term ) {
+					wp_cache_delete( Cache_Keys::term_schema( (int) $byline_term->term_id ), Generator::CACHE_GROUP );
+				}
+			}
 		}
 	}
 
