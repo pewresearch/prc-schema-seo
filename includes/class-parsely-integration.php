@@ -445,6 +445,18 @@ class Parsely_Integration {
 			return;
 		}
 
+		/**
+		 * Filters whether prc-schema-seo outputs the post type archive Parse.ly tags.
+		 *
+		 * Return false when a plugin emits its own `parsely-*` tags for archive
+		 * views that serve many distinct routes under one post type.
+		 *
+		 * @param bool $output Whether to output the archive tags. Default true.
+		 */
+		if ( ! apply_filters( 'prc_schema_seo_output_post_type_archive_parsely_tags', true ) ) {
+			return;
+		}
+
 		$post_type = get_query_var( 'post_type' );
 		$post_type = is_array( $post_type ) ? reset( $post_type ) : $post_type;
 		if ( ! is_string( $post_type ) || '' === $post_type ) {

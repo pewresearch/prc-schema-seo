@@ -49,6 +49,12 @@ The platform uses Automattic’s [wp-parsely](https://github.com/Parsely/wp-pars
 | `wp_parsely_metadata`        | Two roles: (1) on singular tracked posts, map PRC fields into Parse.ly’s metadata array (headline, `url`, thumbnail, `keywords`, `articleSection`, author/creator, dates); (2) on the front page, term archives, post type archives, and RLS template singular, return an empty array to suppress `wp-parsely`'s own renderer (which bails when `headline` is unset). The `wp_parsely_should_insert_metadata` filter is intentionally **not** used because `wp-parsely` evaluates it once at plugin init (before `wp` has fired), making conditional-tag-based gating unreliable. |
 | `wp_parsely_permalink`       | Align Parse.ly link meta with the PRC canonical URL (`prc_schema_seo_canonical_url` filter applies); scheme forced to `https`.                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 
+### Filters provided
+
+| Filter                                                 | Purpose                                                                                                                                                                                                                                                  |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `prc_schema_seo_output_post_type_archive_parsely_tags` | Boolean, default `true`. Return `false` to stop PRC from emitting the post type archive `parsely-*` tags. Use it when a plugin serves many routes under one post type archive and emits its own route-specific tags (for example Religious Projections). |
+
 ### Caching
 
 Home, term, and post type archive Parse.ly HTML fragments are cached with `wp_cache_*` in group `prc_schema_seo_parsely_07142026`, TTL **1 hour**, keys such as `parsely_tags_home`, `parsely_tags_term_{term_id}`, and `parsely_tags_post_type_archive_{post_type}`. Term and home/archive fragments are invalidated on term meta updates and `blogname`/`home`/`siteurl` option changes. The WP-CLI migration command can warm term cache via the same `Parsely_Integration::warm_term_cache()` path.
@@ -59,6 +65,53 @@ Home, term, and post type archive Parse.ly HTML fragments are cached with `wp_ca
 - **Headline**: The Parse.ly `headline` (`parsely-title`) for singular posts is the WordPress post title, not the SEO title (`Parsely_Integration::get_parsely_headline()`). It reads the stored `post_title` without `the_title` filters (no "Private:"/"Protected:" prefix, no curly-quote texturizing), strips tags, decodes entities to plain text, and collapses whitespace; `wp-parsely` escapes on output. A post with an empty title keeps `wp-parsely`'s own headline. The result is cached with the post's Parse.ly metadata and cleared on `save_post`.
 - **Keywords / section**: Built from category, formats, research-teams, and internal markers (`get_parsely_tag_tokens`, `get_parsely_section`); empty section is omitted so `articleSection` is not sent when there is no primary category name.
 - **Troubleshooting**: If Parse.ly tags are missing locally, confirm environment type is `local` (for MU loader), that `wp-parsely` is active, and that the current template is not one where insertion is intentionally disabled (see table above).
+
+## Single Page Interactivity API Apps
+
+Use this section when one post type or archive serves many client-side routes. Religious Projections and Religious Landscape Study are examples.
+
+prc-schema-seo output is keyed to the WordPress query, for example a post type archive or a singular post. It cannot see the client-side route. Do not edit prc-schema-seo for one app. The app plugin must change the head output with filters.
+
+### SEO meta tags and schema
+
+Use these filters. Check that the request is your app before you change a value.
+
+| Filter                                         | Use                                                                         |
+| ---------------------------------------------- | --------------------------------------------------------------------------- |
+| `pre_get_document_title`                       | Set the `<title>` for the route. Use a priority that runs after schema-seo. |
+| `prc_schema_seo_meta_tags`                     | Set `og:title`, `og:url`, `canonical`, and the description for the route.   |
+| `prc_schema_seo_og_image_url`                  | Set the share image.                                                        |
+| `prc_schema_seo_post_type_archive_schema`      | Name the CollectionPage and set its URL for the route.                      |
+| `prc_schema_seo_post_type_archive_schema_data` | Add or change schema objects in the archive graph.                          |
+
+### Parse.ly tags
+
+By default, schema-seo emits one set of `parsely-*` tags for each post type archive. The title is the post type label. The link is the archive URL. Every route gets the same values.
+
+1. Return `false` from `prc_schema_seo_output_post_type_archive_parsely_tags` when the request is your app.
+2. Print `parsely-title`, `parsely-link`, and `parsely-type` on `wp_head` for the current route.
+3. Build the tags on each request. Do not cache them.
+4. Escape each value with `esc_attr()`. Send the link with the `https` scheme.
+
+### Dynamic pageview tracking
+
+Parse.ly autotrack counts only the first page load. Client-side route changes do not reload the page, so the app must send a pageview for each new route. Call `window.PARSELY?.beacon?.trackPageView( { url, urlref, js: 1 } )` after each router navigation to a new path. Send absolute URLs. Skip hash-only and same-URL changes. Keep autotrack on so the first load still counts. Each route must also serve its own `parsely-*` tags (see above), because the Parse.ly crawler reads the metadata from the route URL.
+
+Religious Projections watches `core/router` `state.url`. That value changes after `navigate()` and after back/forward. See [`parsely-tracking.js`](../prc-religious-projections/src/context-provider/parsely-tracking.js) and the `trackParselyPageview` callback in [`view.js`](../prc-religious-projections/src/context-provider/view.js).
+
+### Cache keys
+
+schema-seo caches archive schema and meta tags with one key for each post type. Do not rely on this cache for a value that changes with the route. Return `false` from these filters for your post type:
+
+- `prc_schema_seo_cache_post_type_archive_schema`
+- `prc_schema_seo_cache_post_type_archive_meta_tags`
+
+The Parse.ly archive filter above also skips the Parse.ly cache for your post type.
+
+### Reference implementations
+
+- [Religious Projections `class-seo.php`](../prc-religious-projections/includes/class-seo.php) uses the filters above and prints the Parse.ly tags.
+- [Religious Landscape Study `class-seo.php`](../prc-religious-landscape-study/includes/class-seo.php) prints its Parse.ly tags at `wp_head` priority 1. It skips its post type in schema-seo with a constant check. New apps should use the filter instead.
 
 ## Pattern Tokens
 
