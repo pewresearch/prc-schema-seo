@@ -36,6 +36,11 @@ class Parsely_Integration {
 	const CACHE_TTL = Cache_Keys::TTL;
 
 	/**
+	 * First-party Parse.ly tracking script URL.
+	 */
+	const TRACKER_URL = 'https://fpa-cdn.pewresearch.org/keys/pewresearch.org/p.js';
+
+	/**
 	 * Loader instance.
 	 *
 	 * @var Loader
@@ -71,6 +76,7 @@ class Parsely_Integration {
 		$this->loader->add_filter( 'wp_parsely_metadata', $this, 'filter_wp_parsely_metadata', 10, 3 );
 		$this->loader->add_filter( 'wp_parsely_permalink', $this, 'filter_wp_parsely_permalink', 10, 3 );
 		$this->loader->add_filter( 'wp_parsely_load_js_tracker', $this, 'filter_wp_parsely_load_js_tracker' );
+		$this->loader->add_filter( 'wp_parsely_tracker_url', $this, 'filter_wp_parsely_tracker_url' );
 
 		// PRC owns parsely-* output on the front page, term archives, and CPT archives.
 		// wp-parsely's own renderer is suppressed for these contexts via
@@ -136,6 +142,16 @@ class Parsely_Integration {
 			return false;
 		}
 		return ! self::is_signed_render();
+	}
+
+	/**
+	 * Serve the Parse.ly tracker from the first-party Pew Research Center CDN.
+	 *
+	 * @param string $tracker_url Default tracker URL.
+	 * @return string
+	 */
+	public function filter_wp_parsely_tracker_url( $tracker_url ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found
+		return self::TRACKER_URL;
 	}
 
 	/**
